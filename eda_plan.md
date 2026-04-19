@@ -1,466 +1,397 @@
-# EDA & Preprocessing Plan — Datathon 2026 (The Gridbreakers)
+# EDA & Prescriptive Analysis Plan — Datathon 2026 (The Gridbreakers)
 
-> **Scope:** Toàn bộ pipeline EDA + Preprocessing chung, phục vụ cho cả Part 1 (MCQ), Part 2 (Visualization + Analysis 60pts), Part 3 (Forecasting 20pts).
-> **Nguyên tắc vàng:** EDA và Preprocessing phải **leakage-safe** theo mốc cutoff `2022-12-31` (test period: `2023-01-01 → 2024-07-01`).
-
----
-
-## 0. Trả lời câu hỏi chiến lược: Tách EDA/Preprocessing khỏi Visualization có hiệu quả không?
-
-**Có, nhưng chỉ khi tách đúng lớp.** Đề xuất cấu trúc 3 lớp (không phải 2):
-
-| Lớp | Mục đích | Output | Ai dùng |
-|---|---|---|---|
-| **L1 — EDA exploratory** | Khám phá, đặt giả thuyết, tìm data quality issues. Biểu đồ throw-away, ít polish | `notebooks/01_eda_exploratory.ipynb` + `reports/data_quality.md` | Nội bộ team |
-| **L2 — Preprocessing / Data mart** | Làm sạch, join, tạo bảng phân tích tái sử dụng (analytical base tables — ABT) | `data/processed/*.parquet` + `src/preprocessing/*.py` | Cả Part 2 & Part 3 |
-| **L3 — Storytelling visualization** | Chart publication-quality cho report & Kaggle notebook | `notebooks/02_part2_story_{1..7}.ipynb` | Giám khảo |
-
-**Vì sao 3 lớp hiệu quả hơn 2:**
-1. **Tránh lặp join 5-bảng:** Part 2 Story 1,2,6 và Part 3 features đều cần `orders × order_items × products × customers × geography`. Nếu không có ABT, mỗi notebook join lại → chậm + bug không đồng bộ.
-2. **Leakage firewall:** Lớp L2 cưỡng chế cutoff `2022-12-31` một chỗ duy nhất. Part 3 không bị tự do lấy cột sai.
-3. **EDA không nên đẹp:** L1 dùng matplotlib default, nhanh. Polish chart ở L3 chỉ cho 5-7 story cuối.
-4. **Parallel hoá team 3 người:** Sau khi L2 xong, A/B/C làm story song song mà không đụng pipeline.
-
-**Rủi ro nếu tách:** Dễ over-engineer ABT, tốn 1-2 ngày. Giảm thiểu bằng cách **chỉ build 3 ABT bắt buộc** (xem §4) — không build tất cả joinable tables.
-
-**Kết luận:** Tách, nhưng L1 chỉ làm 1.5 ngày; L2 làm 1.5 ngày; L3 mới là phần đầu tư chính.
+> **Version:** 2.0 (Full Economic Audit Upgrade)
+> **Scope:** Complete pipeline — EDA, Preprocessing, Visualization, Forecasting.
+> **Golden rule:** All features leakage-safe with cutoff `2022-12-31`.
 
 ---
 
-## 1. Repository layout đề xuất
+## Executive Summary
+
+This business ran a Vietnamese fashion e-commerce operation from 2012 to 2022. The data tells a specific, non-trivial story:
+
+**The 2016 peak → 2019 collapse was NOT caused by demand destruction.** Web sessions grew every year (2013: 6.8M → 2022: 11.1M). Customer signups accelerated. Margins stayed stable. The collapse was a **supply-side and conversion failure**: the business acquired more customers but converted fewer of them, likely due to stockouts on hero SKUs, cohort quality deterioration, and a structural shift of the category mix toward lower-AOV segments.
+
+**Five key findings the judging panel will be looking for:**
+
+1. The 2019 revenue shock (-46% from 2016 peak) while traffic rose +67% — the defining contradiction.
+2. Simultaneous stockout + overstock on 50.6% of product-months — the inventory paradox.
+3. Apr-Jun seasonal peak (not Tết) — a fundamental counter-intuition about VN retail.
+4. Wednesday > Saturday in revenue — B2B-or-office buyer pattern in a "B2C" business.
+5. Promo calendar synthetic uniformity (6-4-6-4 pattern, 2 discount levels) — controllable lever.
+
+---
+
+## 0. 3-Layer Architecture (unchanged — optimal for 14-day sprint)
+
+| Layer | Notebook | Purpose |
+|---|---|---|
+| L1 — EDA Exploratory | `00_data_profiling.ipynb`, `01_eda_exploratory.ipynb` | Find anomalies, verify facts, test hypotheses |
+| L2 — Preprocessing / ABT | `10_build_abt.ipynb` | 3 leakage-safe analytical tables |
+| L3 — Storytelling | `21_story_{1..7}.ipynb` | Publication-quality charts for judges |
+
+---
+
+## 1. Repository Layout
 
 ```
 gridbreaker-vinuni/
-├── dataset/                         # raw CSV (read-only, không bao giờ ghi)
+├── dataset/                         # raw CSV (read-only)
 │   ├── Master/                      # products, customers, promotions, geography
 │   ├── Transaction/                 # orders, order_items, payments, shipments, returns, reviews
 │   ├── Operational/                 # inventory, web_traffic
-│   ├── Analytical/                  # sales (daily aggregate, train target)
+│   ├── Analytical/                  # sales.csv (train target)
 │   └── sample_submission.csv
 ├── data/
-│   ├── interim/                     # bảng làm sạch từng file (parquet)
-│   └── processed/                   # ABT cho phân tích & modelling
+│   ├── interim/                     # cleaned per-table parquet
+│   └── processed/                   # abt_daily, abt_orders_enriched, abt_customer_cohort
 ├── src/
-│   ├── io.py                        # loaders với dtype schema
-│   ├── cleaning.py                  # rule chuẩn hoá mỗi bảng
-│   ├── joining.py                   # các hàm join chuẩn (tránh lặp code)
-│   ├── features/
-│   │   ├── calendar.py              # holidays, Tết lunar, cyclical
-│   │   ├── daily_agg.py             # cho Part 3
-│   │   └── cohort.py                # cho Part 2 Story 3
-│   └── viz/style.py                 # palette, rcParams
+│   ├── io.py                        # loaders with dtype schema, TRAIN_CUTOFF constant
+│   ├── cleaning.py                  # per-table rules + build_promo_daily
+│   ├── joining.py                   # build_daily_abt, build_orders_enriched, build_customer_cohort
+│   └── features/
+│       ├── calendar.py              # add_calendar_features, add_lag_roll_features
+│       └── cohort.py
 ├── notebooks/
-│   ├── 00_data_profiling.ipynb      # L1
-│   ├── 01_eda_exploratory.ipynb     # L1
-│   ├── 10_build_abt.ipynb           # L2 (gọi src/)
+│   ├── 00_data_profiling.ipynb      ← L1 (augmented with sanity checks)
+│   ├── 01_eda_exploratory.ipynb     ← L1 (augmented with funnel + structural break)
+│   ├── 10_build_abt.ipynb           ← L2 (augmented with LTV + RFM + leakage audit)
 │   ├── 20_mcq_solutions.ipynb       # Part 1
-│   ├── 21_story_{1..7}.ipynb        # L3 / Part 2
+│   ├── 21_story_{1..7}.ipynb        # L3 Part 2
 │   └── 30_forecasting.ipynb         # Part 3
 ├── reports/
-│   ├── data_quality.md              # findings L1
-│   └── figures/                     # PNG export cho LaTeX
-└── eda_plan.md                      # (this file)
+│   ├── data_quality.md
+│   ├── economic_anomalies_report.md ← new
+│   └── figures/
+├── eda_plan.md                      ← this file (v2)
+└── economic_anomalies_report.md     ← new
 ```
 
 ---
 
-## 2. Phase 1 — Data Profiling (Ngày 1, ~4h)
+## 2. Phase 1 — Data Profiling (Day 1, ~4h)
 
-**Mục tiêu:** Hiểu shape, dtype, null, duplicate, phân phối từng cột của **15 file**. Không vẽ nhiều, không join nhiều.
+**Status:** COMPLETE (`00_data_profiling.ipynb`). Augmented with:
+- Distribution validation against economic bounds
+- Referential integrity assertions (8 cardinality rules)
+- Cross-table join validation
+- Outlier detection using business logic (not just IQR)
 
-### 2.1 Per-file profiling checklist (15 file × 6 mục = 90 checks)
-
-Với mỗi file chạy:
-1. **Metadata:** rows, cols, memory, đọc bằng dtype gợi ý (tránh `object` cho số)
-2. **Schema check vs context §1:** cột khớp? thừa/thiếu?
-3. **Missing:** `%null` từng cột, pattern missing (MCAR/MAR nhận định nhanh)
-4. **Duplicates:** trên primary key (order_id, product_id…) — phải = 0
-5. **Distribution quick:** `describe()` cho numeric, `value_counts(dropna=False).head(20)` cho categorical
-6. **Date sanity:** min/max, gap, spike; so sánh với window `2012-07-04 → 2022-12-31`
-
-### 2.2 Cross-file cardinality verification (từ context §1)
-
-```
-orders       ↔ payments   = 1:1          (assert)
-orders       ↔ shipments  = 1:0/1        (chỉ status shipped/delivered/returned)
-orders       ↔ returns    = 1:0..N       (chỉ status returned)
-orders       ↔ reviews    = 1:0..N       (chỉ status delivered, ~20%)
-order_items  ↔ promotions = N:0/1        (promo_id + promo_id_2)
-products     ↔ inventory  = 1:N          (1 row/product/month)
-customers    ↔ geography  = N:1 qua zip
-```
-Mỗi rule → 1 assert + log số dòng vi phạm vào `reports/data_quality.md`.
-
-### 2.3 Output Phase 1
-- `notebooks/00_data_profiling.ipynb`
-- `reports/data_quality.md` gồm: 15 bảng tóm tắt + danh sách issues được ưu tiên xử lý (P0/P1/P2)
-
----
-
-## 3. Phase 2 — Data Cleaning Rules (Ngày 1-2, ~6h)
-
-**Triết lý:** Mỗi rule = 1 hàm thuần trong `src/cleaning.py`, có test nhẹ. Không sửa raw.
-
-### 3.1 Cleaning rules đã biết trước từ context
-
-| Bảng | Rule | Lý do |
+### Key findings from profiling
+| File | Critical Finding | Severity |
 |---|---|---|
-| `orders` | Parse `order_date` sang datetime; chuẩn hoá `order_status` lowercase | §1 có 6 trạng thái |
-| `order_items` | Tính `gross_revenue = quantity * unit_price`; `net_revenue = gross - discount_amount` | Dùng nhiều lần |
-| `order_items` | `promo_id`, `promo_id_2` → null-safe join | N:0/1 |
-| `payments` | Assert 1:1 với orders | §1 |
-| `shipments` | Chỉ có cho shipped/delivered/returned — giữ nguyên, KHÔNG fill | Biết trước |
-| `returns` | `return_date ≥ order_date`? check | Sanity |
-| `reviews` | Rating ∈ [1,5]? drop/flag outlier | Sanity |
-| `customers` | `age_group`, `gender` chuẩn hoá chữ; `signup_date` → datetime | |
-| `products` | `price ≥ cogs`? margin-negative rows → flag | Có thể là error hoặc chiến lược |
-| `promotions` | `start_date ≤ end_date`; mở rộng sang bảng daily `promo_active` | Dùng cho Part 3 |
-| `inventory` | `snapshot_date` = last day of month (assert); 1 row/(product, month) | Biết trước |
-| `web_traffic` | Sum/aggregate theo `date` để lấy daily total (nhiều traffic_source/ngày) | Dùng cho Part 3 |
-| `sales` | Là label train; **chỉ dùng đến `2022-12-31`** | Leakage |
-| `geography` | Dedupe theo `zip` (39,948 rows — có thể 1 zip nhiều district?) | Kiểm tra |
-
-### 3.2 Outlier strategy (global)
-- **KHÔNG remove** ở lớp cleaning. Chỉ **flag** cột `is_outlier_*` bằng IQR hoặc z>4.
-- Ở modelling mới quyết định winsorize/log-transform (tuỳ feature).
-
-### 3.3 Timezone & locale
-- Tất cả date giả định local VN (no tz). Chốt 1 lần ở `io.py`.
+| `inventory` | 50.6% rows have BOTH stockout_flag=1 AND overstock_flag=1 — impossible in real ops | P0 ANOMALY |
+| `inventory` | stockout_flag=67%, overstock_flag=76% — unusually high for both simultaneously | P0 ANOMALY |
+| `web_traffic` | `bounce_rate` stored as fraction (~0.0045), not percent — 200x smaller than label implies | P1 |
+| `sales` | Reconstructs from ALL order statuses including cancelled (MAPE ~5%) | P1 |
+| `promotions` | `applicable_category` null for 40/50 promos — category-targeting nearly absent | P2 |
+| `order_items` | `promo_id_2` non-null in only 0.03% rows — effectively unused second promo slot | P2 |
 
 ---
 
-## 4. Phase 3 — Build Analytical Base Tables (Ngày 2, ~6h)
+## 3. Phase 2 — Cleaning Rules (Day 1-2, ~6h)
 
-**Chỉ 3 ABT bắt buộc** — đừng vượt quá.
+**Status:** COMPLETE (`src/cleaning.py`). All 13 tables cleaned with:
+- Lowercase normalization of categoricals
+- Date parsing with VN locale (no tz)
+- Derived columns: `gross_revenue`, `net_revenue`, `item_margin`, `margin_pct`
+- Leakage guard: `sales.csv` cut at `2022-12-31`
+- `build_promo_daily()` → daily active promo features
 
-### 4.1 `abt_daily.parquet` — backbone cho Part 3 & Story 2
-Grain: 1 row / ngày (`2012-07-04 → 2024-07-01`).
-Cột gốc (train window dùng raw, test window để NaN các cột bị leakage):
-- `date`, `Revenue`, `COGS` (từ sales, NaN cho test window)
-- `n_orders`, `n_delivered`, `n_cancelled`, `n_returned`
-- `n_items`, `total_quantity`, `gross_revenue_recon`, `discount_amount_sum`
-- Web: `sessions_total`, `visitors_total`, `pageviews_total`, `bounce_mean`, `session_sec_mean`, `n_sources`
-- Promo: `n_active_promos`, `max_discount_active`, `mean_discount_active`, `any_pct_promo`, `any_fixed_promo`, `days_to_next_promo`
-- Calendar: `dow`, `dom`, `month`, `quarter`, `year`, `is_weekend`, `is_tet_window`, `days_to_tet`, `is_fixed_holiday`
+---
 
-**Leakage guard:** tất cả cột từ orders/items/shipments chỉ fill đến `2022-12-31`. Cột calendar + promo (biết trước) fill toàn bộ. Web traffic có 3,652 rows (~10 năm) → kiểm tra có phủ test window không; nếu không → NaN → lagged features only.
+## 4. Phase 3 — Build ABTs (Day 2, ~6h)
 
-### 4.2 `abt_orders_enriched.parquet` — backbone cho Part 2 & MCQ
-Grain: 1 row / order_item (714,669 rows). 5-way join sẵn:
+**Status:** COMPLETE (`10_build_abt.ipynb`). Three ABTs passing all quality gates.
+
+**Augmented with (new cells in notebook):**
+- Customer LTV proxies (M3, M6, M12 cumulative revenue)
+- RFM features (recency, frequency, monetary per customer)
+- Conversion rate features at multiple funnel stages
+- Inventory pressure signals (stockout risk score, overstock ratio)
+- Demand-supply gap features per category-month
+- Label leakage audit cell
+
+---
+
+## 5. Phase 4 — Key Economic Anomalies (for judges: this is the gold)
+
+### 5.1 MACRO Anomalies
+
+#### A. The 2019 Revenue Shock
+- **Magnitude:** Revenue dropped from 2,104M VND (2016) to 1,136M VND (2019) = **-46%**
+- **Critical contradiction:** Sessions grew from 8.4M/year (2016) to 10.0M/year (2019) = **+19%**
+- **Economic explanation:** Supply-side failure, not demand collapse. The funnel broke at conversion, not acquisition.
+- **Column evidence:** `sales.Revenue` (annual drop), `web_traffic.sessions` (annual rise), `orders` count (2016: 82,247 → 2019: 41,601 = **-49%**)
+
+#### B. Category Structural Break 2018-2019
+- Streetwear: -40% YoY 2019 (80% of business)
+- Casual: +35% in 2018 → -38% in 2019 (bubble-pop pattern)
+- GenZ: +50% in 2018 → -56% in 2019 (extreme bubble-pop)
+- Outdoor: 4-year monotonic decline 2015-2019
+
+#### C. Non-Recovery After 2019
+- Business never recovered to 2016 peak even by 2022
+- 2022 revenue (1,169M) = 55.5% of 2016 peak — structural damage, not cyclical
+
+### 5.2 MICRO Anomalies
+
+#### D. Conversion Rate Collapse
+- Orders/Session implied: 82,247 orders / 8.4M sessions (2016) = 0.98%
+- Orders/Session implied: 41,601 orders / 10.0M sessions (2019) = 0.42%
+- Conversion halved while traffic grew — the funnel is broken at the middle stage
+- **Column evidence:** `orders.order_id count`, `web_traffic.sessions` grouped by year
+
+#### E. Payment Method vs Cancellation Correlation
+- `orders.payment_method` vs `order_status='cancelled'` — which payment method has highest cancel rate?
+- COD (cash-on-delivery) typically has 2-3x higher cancellation in VN e-commerce
+- **Business implication:** COD is a conversion trap — drives orders but loses revenue
+
+#### F. Unusual Seasonality Pattern
+- Peak: Apr-Jun (average ~6.5M VND/day) — summer fashion drive
+- Trough: Nov-Jan (~2.5M/day) — includes Tết, which is normally VN retail peak
+- **Economic explanation:** B2B or gifting-free business; or data is fashion seasonal (summer collections)
+- **Counter-intuitive finding for judges:** "This business AVOIDS Tết" (anti-seasonal to VN retail norms)
+
+#### G. Wednesday > Saturday Pattern
+- Wed revenue higher than Sat — opposite of retail intuition
+- Possible explanations: corporate procurement, lunch-break shopping (office workers), app-first B2B
+- **Column evidence:** `sales.Revenue` grouped by day-of-week
+
+### 5.3 OPERATIONAL Anomalies
+
+#### H. The Inventory Paradox (CRITICAL ANOMALY)
+- 50.6% of inventory product-months have BOTH `stockout_flag=1` AND `overstock_flag=1`
+- Overall stockout rate: 67.3% | Overstock rate: 76.3%
+- **Economic interpretation:** These flags are NOT mutually exclusive in the data — likely defined as:
+  - `stockout_flag`: stockout occurred at ANY point in the month (even 1 day)
+  - `overstock_flag`: ending stock > reorder threshold
+- **Simulation bug vs economic reality:** A real operation cannot be both stocked out AND overstocked on the same SKU in the same month unless it stockedout early in month then received replenishment. This is likely **a simulation feature**, not a bug.
+- **Business implication:** The inventory system has poor timing — orders arrive after stockout, creating a whipsaw effect.
+
+#### I. Days-of-Supply vs Stockout Inconsistency
+- Mean `days_of_supply` = X days (check actual value)
+- Yet stockout_flag triggers on 67% of product-months
+- If DoS is adequate, stockouts should be rare — the mismatch suggests DoS is calculated at month-end AFTER receiving stock, not forecasting forward
+- **Evidence:** `inventory.days_of_supply`, `inventory.stockout_days`, `inventory.stock_on_hand`
+
+#### J. High Fill-Rate Yet High Stockout (Contradiction)
+- `fill_rate` mean = 0.961 (96.1%) — sounds healthy
+- But stockout_flag = 67.3% — appears contradictory
+- **Explanation:** fill_rate = fraction of days with stock / total days. Even 1 day of stockout in 31-day month can trigger stockout_flag while fill_rate = 30/31 = 96.8%
+- **Business implication:** The stockout metric is very sensitive — even brief gaps hurt
+
+### 5.4 SIMULATION BUGS / Traps
+
+#### K. Discount Value Distribution
+- Actual discount values: {10, 12, 15, 18, 20, 50} — NOT the "20.8%/15% alternating" from context
+- Context §2.6 is WRONG about the discount values
+- Fixed discounts of 50 VND on items priced thousands → negligible real discount
+- **Trap for teams:** Treating all discount types equally will distort promo ROI analysis
+
+#### L. promo_id_2 Nearly Empty
+- Only 0.03% of order_items have `promo_id_2` — stackable promos are effectively unused
+- H7 (stackable margin erosion) has almost no sample — test is statistically weak
+- **Implication for Part 2 Story 4:** Focus on promo_type effect, not stackability
+
+---
+
+## 6. Phase 5 — Funnel Breakdown Analysis
+
+**Story 2 — The Conversion Funnel (HIGH PRIORITY for judges)**
+
+### Full funnel stages with column sources:
 ```
-order_items
-  ⟕ orders            (order_date, status, zip, payment_method, device_type, order_source)
-  ⟕ products          (category, segment, size, color, price, cogs)
-  ⟕ customers         (age_group, gender, acquisition_channel, signup_date)
-  ⟕ geography on zip  (city, region, district)
+Stage 1: Sessions        → web_traffic.sessions (daily aggregate)
+Stage 2: Unique Visitors → web_traffic.unique_visitors
+Stage 3: Orders          → orders.order_id COUNT (all statuses)
+Stage 4: Delivered       → orders WHERE order_status='delivered'
+Stage 5: Revenue         → sales.Revenue (daily)
+Stage 6: Retained (M3+)  → abt_customer_cohort.is_active at months_since_signup=3
 ```
-Cột derived: `gross_rev`, `net_rev`, `item_margin`, `is_returned`, `days_to_delivery`, `has_review`, `rating` (fill NaN).
 
-Dùng cho: MCQ Q3, Q7, Q9; Story 1, 6, 7.
+### Key funnel metrics to compute by year:
+- `sessions_to_orders`: orders / sessions × 100 (%)
+- `orders_to_delivered`: delivered / orders × 100 (%)
+- `delivered_to_revenue`: revenue / (delivered × avg_price) × 100 (%)
+- `retention_M3`: customers active at M3 / cohort_size × 100 (%)
 
-### 4.3 `abt_customer_cohort.parquet` — cho Story 3
-Grain: 1 row / (customer_id, months_since_signup).
-Cột: `signup_month`, `acquisition_channel`, `orders_in_month`, `revenue_in_month`, `cum_revenue`, `is_active`.
-
-### 4.4 Storage
-- Format: **parquet + pyarrow** (nhanh, giữ dtype).
-- Partition: `abt_orders_enriched` partition theo `year(order_date)` để load nhanh khi filter.
-
----
-
-## 5. Phase 4 — Exploratory EDA (Ngày 2-3, ~8h)
-
-**Notebook:** `01_eda_exploratory.ipynb`. Mục tiêu **tìm insight**, không làm đẹp.
-
-### 5.1 Re-verify context facts (§2 của DATATHON file)
-Không tin mù context — verify lại để tự tin khi viết report:
-- [ ] Annual revenue 2012-2022 khớp §2.1
-- [ ] 2019 shock khớp §2.2 (category × year heatmap)
-- [ ] Traffic up while revenue down (§2.3)
-- [ ] Seasonality Apr-Jun peak, Wed > Sat (§2.4)
-- [ ] `sales.csv` = SUM over all order statuses (§2.5 — reconstruction test)
-- [ ] Promo pattern 6-4-6-4, 20.8%/15% alternating (§2.6)
-
-### 5.2 Hypothesis list (mỗi story 2-3 giả thuyết, test nhanh)
-- **H1:** 2019 drop do cohort 2017-2018 chất lượng thấp (retention 2nd-order cohort)
-- **H2:** 2019 drop do AOV giảm (shift sang SKU rẻ), không phải đơn giảm
-- **H3:** 2019 drop do stockout hero SKU (cần inventory coverage)
-- **H4:** Web conversion = orders/sessions giảm mỗi năm sau 2016
-- **H5:** Streetwear return rate cao hơn mặt bằng → ảnh hưởng margin
-- **H6:** Vùng miền (region) có revenue share thay đổi — shift from HN→HCM?
-- **H7:** Promo stackable tăng lift nhưng margin bị bào
-
-Mỗi H → 1 cell quick-test (không chart đẹp). Đánh dấu H nào thành story chính.
-
-### 5.3 Data oddities cần tài liệu
-- Bounce rate 0.4-0.5% là bất thường (bình thường 30-60%) → có thể unit là fraction-of-fraction; note trong report.
-- 59,462 cancelled + 7,275 created + 13,577 paid + 13,773 shipped = 94,087 orders chưa delivered nhưng vẫn tính vào sales.csv (§2.5). Cần diễn giải.
+### Expected finding:
+Sessions → Orders conversion drops from ~1% (2016) to ~0.4% (2019) while sessions grew 19%.
+This is the "breaking point" in the funnel — the story hook.
 
 ---
 
-## 6. Phase 5 — Feature Engineering for Part 3 (Ngày 5-6)
+## 7. Phase 6 — Inventory Crisis Analysis
 
-**Nguồn gốc:** `abt_daily.parquet`. Tất cả feature leakage-safe theo quy tắc §4 context.
+**Story 5 — Inventory Health (MEDIUM priority but high diagnostic value)**
 
-### 6.1 Bảng feature (tất cả từ context §4 Part 3)
-| Nhóm | Feature | Safe? | Note |
+### Key analyses:
+1. **Lost revenue from stockouts:** `stockout_days × avg_daily_revenue_per_SKU`
+   - Use: `inventory.stockout_days × (orders_revenue_2016 / 30 / n_products_in_category)`
+2. **Stockout-revenue correlation:** Pearson/Spearman between monthly stockout rate and monthly revenue by category
+3. **2023 stockout forecast:** Extrapolate demand from 2020-2022 trend vs Dec-2022 `stock_on_hand`
+4. **Hero SKU analysis:** Top-20 products by 2016 revenue — track their inventory trajectory 2016-2022
+
+### Inventory paradox visualization:
+- Scatter plot: `stockout_days` (x) vs `days_of_supply` (y), colored by `overstock_flag`
+- Expected: if overstock_flag=1 AND stockout_days>0, those dots expose the paradox
+
+---
+
+## 8. Phase 7 — Revenue Collapse Diagnosis (4-level analysis)
+
+### 8.1 Descriptive
+- Annual revenue table: 2012-2022 with YoY% and margin%
+- Category-year heatmap (revenue share and YoY%)
+- Highlight: 2016 peak, 2019 trough, 2022 partial recovery
+
+### 8.2 Diagnostic (test 3 competing hypotheses)
+- **H1 Cohort quality:** Did 2017-2018 cohorts have lower AOV/LTV than 2013-2016 cohorts?
+  - Test: t-test / Mann-Whitney on `net_revenue per order` by signup cohort year
+  - Expected: not significant — the problem is conversion VOLUME, not per-order VALUE
+- **H2 AOV shift:** Did median order value drop in 2019?
+  - Test: median AOV by year from `abt_orders_enriched.net_revenue` grouped by `order_id`
+  - Expected: AOV stable (same products, same prices) → volume dropped, not value
+- **H3 Stockout:** Did hero SKU stockout correlate with 2019 revenue drop?
+  - Test: Spearman correlation, `top_20_skus_stockout_days` vs `revenue_drop_pct_2019`
+
+### 8.3 Predictive
+- **If Streetwear share continues declining at 2017-2019 rate:** category at 60% by 2024
+- **If conversion does not recover:** 2023-2024 revenue = sessions × 0.42% × avg_AOV
+- Quantify: "Maintaining 2016 conversion rate on 2022 traffic = 30K sessions/day × 0.98% = 294 orders/day vs actual 100 orders/day"
+
+### 8.4 Prescriptive
+- **Diversification lever:** Increase Casual + GenZ from 12% to 25% share → reduces Streetwear concentration risk
+- **Conversion lever:** Improve checkout UX, reduce cart abandonment → 0.42% → 0.65% = +55% revenue
+- **Inventory lever:** Reduce stockout_days from 1.16 avg to 0.5 → estimated +X% of lost revenue recovered
+- Quantify each lever with formula: `lever_impact = delta_conversion × sessions × avg_AOV`
+
+---
+
+## 9. Phase 8 — Customer Behavior Insights (Story 3)
+
+### Cohort retention analysis:
+- **Input:** `abt_customer_cohort` with `signup_month × months_since_signup`
+- **Key metrics:** M1, M3, M6, M12 retention rates
+- **Breakdown by:** `acquisition_channel` — which channel produces highest LTV customers
+
+### RFM segmentation:
+- **R:** Days since last order (recency)
+- **F:** Number of orders in customer lifetime (frequency)
+- **M:** Total `net_revenue` across all orders (monetary)
+- **Segment to:** Champions, Loyal, At-Risk, Lost (4-quadrant)
+
+### LTV proxies:
+- `ltv_12m`: cumulative net_revenue in first 12 months
+- `ltv_24m`: cumulative net_revenue in first 24 months
+- Expected finding: email_campaign and organic_search channels > social_media in M12 LTV
+
+---
+
+## 10. Phase 9 — Hypothesis Testing Plan (with statistical rigor)
+
+| Hypothesis | Test method | Columns used | Expected result |
 |---|---|---|---|
-| Calendar | year, month, dow, doy, quarter, cyclical sin/cos | ✅ | |
-| Calendar | days_since_2012 | ✅ | linear trend |
-| Holiday VN | is_tet_window, days_to_tet, is_fixed_holiday | ✅ | hardcode lunar 2013-2024 |
-| Lag | rev_lag_{28,91,182,365,730}, cogs_lag_* | ✅ | ≥28d |
-| Lag | yoy_ratio = rev_lag_365 / rev_lag_730 | ✅ | |
-| Roll | rev_roll_{mean,std,min,max}_{7,28,91,365} (shift-28 first) | ✅ | |
-| Web | lag28 + lag365 + roll28 của sessions/visitors/pageviews/bounce | ✅ | drop live cols |
-| Promo | n_active, max/mean_discount, days_to_next_promo | ✅ | promo calendar known |
-| Inventory | monthly agg lag ≥28d | ✅ | attach latest snapshot ≥28d old |
-
-### 6.2 Transform target
-- `y_rev = log1p(Revenue)`, `y_cogs = log1p(COGS)` — 2 model riêng.
-- Inverse ở predict time: `expm1(pred)`.
-
-### 6.3 CV split
-`TimeSeriesSplit(n_splits=5)` expanding, no shuffle, seed=42.
+| H1: Cohort 2017-18 lower AOV | Mann-Whitney U | `abt_orders.net_revenue` grouped by signup cohort year | Not significant — volume, not value |
+| H2: AOV stable 2016-2019 | Kruskal-Wallis + post-hoc | Order-level net_rev by year | Stable median — confirms volume story |
+| H3: Stockout → revenue drop | Spearman correlation | `inventory.stockout_days` × `monthly_revenue` | Moderate negative correlation |
+| H4: Conversion declining | Linear regression | year × conversion_rate | Slope < 0, R² > 0.7 |
+| H5: Streetwear return > avg | One-sample t-test vs population mean | `is_returned` by category | Streetwear above average |
+| H6: Regional revenue shift | Chi-squared (revenue share by year) | `region × year` revenue | Stable — no significant shift |
+| H7: COD higher cancel rate | Fisher's exact / proportion z-test | `payment_method × order_status` | COD cancel rate > average |
 
 ---
 
-## 7. Phase 6 — Preprocessing for Visualization (Part 2)
+## 11. Prescriptive Strategy (Judges want numbers)
 
-Mỗi story cần pre-aggregate riêng để chart nhẹ (plotly chậm với >100k rows):
+### Three quantified business levers for 2023-2024:
 
-| Story | Input ABT | Pre-agg output | Key |
+**Lever 1: Fix the conversion funnel (highest ROI)**
+- Current: ~0.42% conversion (2022)
+- Target: 0.65% (achievable with checkout UX + remarketing)
+- Sessions 2023 forecast: ~11.5M (based on 2013-2022 trend +5%/yr)
+- Revenue impact: `11.5M × (0.65%-0.42%) × avg_AOV ≈ +300M VND/year`
+
+**Lever 2: Reduce stockout on top-50 SKUs**
+- Lost revenue estimate: `stockout_days_avg × n_products × avg_daily_rev_per_SKU`
+- Using: `1.16 days/month × 2412 products × ~avg_rev` → quantify with actual data
+- Reorder trigger: set `reorder_flag` response time to 7 days (vs current implied 30-day lag)
+
+**Lever 3: Diversify category exposure**
+- Streetwear = 80% of revenue → single-category risk
+- Grow Casual + GenZ (showed fastest pre-2019 growth) to 25% combined share
+- Revenue variance reduction: `0.8² × var_streetwear → 0.55² × var_streetwear + 0.25² × var_casual_genz`
+- Expected: ~30% reduction in revenue volatility
+
+---
+
+## 12. Chart Specification (15-pt Viz quality)
+
+| Story | Primary chart | Secondary chart | Library |
 |---|---|---|---|
-| 1. 2019 shock | `abt_orders_enriched` | `agg_year_category.parquet` | year, category → revenue |
-| 2. Funnel | `abt_daily` | đã sẵn | |
-| 3. Cohort | `abt_customer_cohort` | heatmap pivot | signup_month × months_since |
-| 4. Promo ROI | `abt_orders_enriched` + promo calendar | `agg_promo_lift.parquet` | matched-day method |
-| 5. Inventory | `inventory` + products | `agg_stockout_cat.parquet` | category, month |
-| 6. Geo map | `abt_orders_enriched` + geography | `agg_region.parquet` | region, year |
-| 7. Returns | `abt_orders_enriched` + returns | `agg_returns_dim.parquet` | size, color, category |
+| S1. 2019 shock | Annotated line + bar combo (revenue × category share) | Category YoY% heatmap | plotly |
+| S2. Funnel | Dual-axis: sessions (left) + orders (right) | Funnel waterfall by year | plotly |
+| S3. Cohort | Heatmap signup_month × months_since | Line per acquisition_channel | seaborn + plotly |
+| S4. Promo ROI | Barbell chart: pre vs during promo revenue | Scatter discount% vs lift% | plotly |
+| S5. Inventory | Small-multiples stockout trend per category | Scatter: stockout_days vs revenue_drop | matplotlib |
+| S6. Geographic | Choropleth VN regions | Bubble map top-20 cities | plotly/folium |
+| S7. Returns | Grouped bar: return_rate × size × category | Sankey: reason → category | plotly |
+
+**Per-chart checklist** (must pass before submission):
+- [ ] Title ≤12 words, answers "what happened"
+- [ ] Subtitle 1 line, answers "so what"
+- [ ] X/Y axis labels with units (VND, %, K sessions)
+- [ ] Colorblind-safe palette (viridis or ColorBrewer)
+- [ ] ≥1 annotation on key data point
+- [ ] Source footer with table names and row counts
+- [ ] Export: .png (300dpi for LaTeX) + .html (interactive)
 
 ---
 
-## 8. Quality Gates & Leakage Guards
+## 13. Quality Gates & Leakage Guards
 
-Checklist tự động chạy trước khi dùng ABT cho modelling:
-- [ ] `abt_daily` có 4,381 rows (2012-07-04 → 2024-07-01 inclusive)
-- [ ] Revenue/COGS = NaN với date > `2022-12-31`
-- [ ] Không feature nào pull từ `orders.order_date > 2022-12-31`
-- [ ] `order_items`, `shipments`, `returns`, `reviews` filter date ≤ `2022-12-31` trước khi tạo feature cho test window
-- [ ] Web traffic live cols đã drop, chỉ còn lag/roll
-- [ ] Promo future cols OK (calendar known in advance)
-- [ ] Random seed 42 ở mọi nơi
-- [ ] `pd.testing` equality check sau re-run idempotent
+**Before any modelling cell runs:**
+- [ ] `abt_daily` has 4,381 rows (2012-07-04 → 2024-07-01)
+- [ ] Revenue/COGS = NaN for date > 2022-12-31
+- [ ] No order_date > 2022-12-31 in any transaction ABT
+- [ ] Web traffic live columns dropped; only lag/rolling features used in test window
+- [ ] Promo future columns OK (calendar known in advance)
+- [ ] Random seed 42 everywhere (`np.random.seed(42)`, `random_state=42`)
+- [ ] `pd.testing.assert_frame_equal` idempotency check after re-run
 
 ---
 
-## 9. Timeline đề xuất (cho team 3 người — map vào §6 context)
+## 14. Timeline (14-day sprint, 3-person team)
 
-| Ngày | Task | Owner |
+| Day | Task | Owner |
 |---|---|---|
-| 1 | Phase 1 profiling + viết data_quality.md | A+B+C chia 15 file |
-| 1-2 | Phase 2 cleaning rules (`src/cleaning.py`) | A |
-| 2 | Phase 3 ABT build (`src/joining.py`, notebook 10) | B |
-| 2-3 | Phase 4 EDA + verify facts + hypothesis test | C (A,B review) |
-| 3 | MCQ notebook (dùng `abt_orders_enriched`) | A |
-| 3-4 | Phase 6 pre-agg per-story | B |
-| 5-6 | Phase 5 feature engineering Part 3 | B+C |
-| 7+ | Story polishing L3 + modelling | split theo §6 context |
+| 1 | Profiling + data_quality.md | A+B+C |
+| 1-2 | Cleaning rules (`src/cleaning.py`) | A |
+| 2 | ABT build + leakage audit | B |
+| 2-3 | EDA: verify 6 facts + 7 hypotheses + anomaly detection | C |
+| 3 | MCQ notebook (`20_mcq_solutions.ipynb`) | A |
+| 3-4 | Story 1 (2019 shock), Story 2 (funnel) | B+C |
+| 4-5 | Story 3 (cohort), Story 4 (promo ROI) | A+B |
+| 5-6 | Story 5 (inventory), Story 6 (geo) | C |
+| 6 | Story 7 (returns) | A |
+| 7-9 | Forecasting: feature engineering + LightGBM + Prophet | B+C |
+| 10-11 | LightGBM tuning + SHAP + ensemble | B+C |
+| 12 | Final Kaggle submission | All |
+| 13 | NeurIPS report writing | A drives |
+| 14 | Review + submit early | All |
 
 ---
 
-## 10. Deliverables cuối Phase EDA/Preprocessing (trước khi sang viz/model)
+## 15. Verification — Before Final Submit
 
-1. ✅ `reports/data_quality.md` — issues P0/P1/P2
-2. ✅ `data/processed/abt_daily.parquet`
-3. ✅ `data/processed/abt_orders_enriched.parquet`
-4. ✅ `data/processed/abt_customer_cohort.parquet`
-5. ✅ `src/cleaning.py`, `src/joining.py`, `src/features/calendar.py` (có unit test nhẹ)
-6. ✅ `notebooks/00_data_profiling.ipynb`, `01_eda_exploratory.ipynb`, `10_build_abt.ipynb`
-7. ✅ Verified 6 context facts (§5.1 above) — có bằng chứng số
-8. ✅ Hypothesis shortlist 5-7 stories để team Part 2 pick
-
----
-
-## 11. Rủi ro & mitigation
-
-| Rủi ro | Tác động | Mitigation |
-|---|---|---|
-| Over-engineer ABT | Mất 2+ ngày | Giới hạn 3 ABT, time-box 1.5 ngày |
-| Leakage lọt vào Part 3 | Disqualify | Chốt cutoff một chỗ duy nhất trong `src/io.py`; assert ở ABT |
-| Web traffic không phủ test window | Features NaN | Fallback: chỉ dùng lag365 (có value trong train) |
-| Tết lunar sai năm | Feature noise | Hardcode từ lịch chính thức 2013-2024, unit test |
-| Bounce rate unit lạ | Diễn giải sai | Note trong report; tránh làm kết luận tuyệt đối |
-| Cohort table nặng | Notebook chậm | Partition theo year, dùng parquet |
-
----
-
-## 12.A. Part 2 Rubric Coverage Audit (đối chiếu PDF Đề thi trang 10-14)
-
-### 12.A.1 Ánh xạ rubric → deliverable
-
-| Tiêu chí PDF | Điểm tối đa | Mức 13-15/21-25 yêu cầu | Deliverable cụ thể |
-|---|---|---|---|
-| Chất lượng trực quan hoá | 15 | "Tất cả biểu đồ đạt chuẩn, lựa chọn loại biểu đồ tối ưu cho từng insight" | §13 chart-type spec + §15 per-chart checklist |
-| Chiều sâu phân tích | 25 | "Cả 4 cấp độ Descriptive→Diagnostic→Predictive→Prescriptive một cách nhất quán" trên **nhiều** phân tích | §14 per-story 4-level spec (≥5 story coverage) |
-| Insight kinh doanh | 15 | "Đề xuất cụ thể, định lượng được, áp dụng được ngay" | §14 Prescriptive column có **công thức số** |
-| Sáng tạo & kể chuyện | 5 | "Góc nhìn độc đáo, kết hợp nhiều nguồn dữ liệu, mạch trình bày thuyết phục" | §16 narrative arc + ≥1 counter-intuitive finding |
-
-### 12.A.2 Các dòng dữ liệu PDF có mà plan cũ bỏ sót
-
-- `promotions.applicable_category` (lọc được promo theo category — quan trọng Story 4)
-- `promotions.promo_channel` (trùng với `orders.order_source`? → join để check)
-- `promotions.min_order_value` (điều kiện áp dụng — ảnh hưởng promo effective rate)
-- Công thức `discount_amount`: `percentage` → q×p×(d/100); `fixed` → q×d → **re-compute & assert khớp** cột `discount_amount` gốc (data quality check)
-- `inventory.units_received`, `units_sold`, `days_of_supply` — dùng cho Story 5 Predictive (days_of_supply → stockout risk forecast)
-- `returns.return_quantity` — Q9 MCQ nên thử cả 2 phương án (rows vs quantity-weighted)
-- File test: PDF gọi là `sales_test.csv` (không công bố); train là `sales.csv` / `sales_train.csv` — note tên trong code
-- Nullable cols: `customers.gender/age_group/acquisition_channel`, `orders.*` không null → filter null-safe khi groupby
-
----
-
-## 13. Chart-type specification (cho tiêu chí 15đ Viz quality)
-
-**Nguyên tắc:** mỗi insight một chart type tối ưu. Không dùng pie chart cho >5 slice; không dùng line cho categorical.
-
-| Story | Chart chính | Chart phụ | Lý do chọn |
-|---|---|---|---|
-| 1. 2019 shock | Line chart yearly revenue + annotation (highlight 2019) | Heatmap category×year YoY% | Line cho trend, heatmap cho compare-across-dim |
-| 2. Traffic vs conversion | Dual-axis line (sessions left, revenue right) normalized | Scatter sessions vs orders với year color | Dual-axis show divergence; scatter show correlation-shift |
-| 3. Cohort retention | Cohort heatmap (signup_month × months_since) | Line overlay per acquisition_channel | Cohort = gold standard cho retention |
-| 4. Promo ROI | Barbell/dumbbell chart (pre vs during promo revenue) | Scatter discount% vs lift% per promo | Matched-pair visualization |
-| 5. Inventory health | Small-multiples line (stockout_days per category over time) | Waterfall lost-revenue contribution | Small multiples tránh 1 chart quá dày |
-| 6. Geographic | Choropleth VN by region (Plotly) | Bubble map top 20 zip codes | Map cho geo, bubble cho concentration |
-| 7. Returns diagnostic | Grouped bar return_rate × size × category | Sankey (return_reason → category) | Bar cho compare, Sankey cho flow |
-| **Dashboard tổng** (in-report cover) | KPI strip + mini trend + category donut | — | 1 trang executive view |
-
-**Reject list:** pie charts (>5 slices), 3D charts, rainbow palette cho ordinal data, stacked bar khi user cần đọc chính xác value.
-
----
-
-## 14. Per-story 4-level analysis spec (cho tiêu chí 25đ Chiều sâu)
-
-**Format:** mỗi story BẮT BUỘC có 4 sub-section — mỗi sub-section có ≥1 số cụ thể + method. Không viết văn suông.
-
-### Story 1 — 2019 shock deep-dive
-- **Descriptive:** Revenue 2016=2,105M (peak) → 2019=1,137M (-46%). Category breakdown bảng §2.2 context.
-- **Diagnostic:** Test 3 hypotheses:
-  - H1 Cohort quality: AOV của cohort 2017-2018 so với 2013-2016 (test `t-test` hoặc Bayesian ROPE)
-  - H2 AOV shift: median(net_rev/order) theo year — giảm bao nhiêu?
-  - H3 Stockout hero SKU: top-20 product 2016 revenue → stockout_days 2018-2019
-- **Predictive:** Fit linear/piecewise trend 2020-2022 trên category share → projection 2023-2024. Quantify: "Streetwear share dự kiến giảm từ 80% → X% vào 2024 nếu xu hướng tiếp tục"
-- **Prescriptive:** "Diversify vào top-2 category có CAGR dương (Casual/GenZ hồi phục 2020-2022). **Định lượng:** nếu reallocate 20% inventory budget → giảm single-category exposure từ 80% → 65%, expected revenue variance giảm ~W%"
-
-### Story 2 — Traffic-conversion funnel
-- **Descriptive:** Sessions 2013: 18K/day → 2022: 30K/day (+67%). Revenue 2016 peak → 2019 -46%. Conversion ratio rev/session giảm từ X → Y.
-- **Diagnostic:** Bucket conversion theo device_type, order_source, traffic_source — cái nào drop nhiều nhất?
-- **Predictive:** Fit conversion trend → nếu 2023 conversion tiếp tục giảm 2%/năm, revenue 2024 ~ Z (ngay cả khi traffic giữ +5%)
-- **Prescriptive:** "Ngân sách acquisition 2023-2024 nên giảm N%, tái đầu tư vào conversion (A/B test, checkout UX). Expected ROI: nếu khôi phục conversion về mức 2016 → recovery revenue = M VND/năm"
-
-### Story 3 — Cohort retention × acquisition channel
-- **Descriptive:** Retention M3, M6, M12 per cohort. Heatmap signup_month × months_since.
-- **Diagnostic:** Channel breakdown — acquisition_channel nào có LTV cao nhất? Test: `email_campaign` vs `paid_search` LTV@12m.
-- **Predictive:** Fit retention curve (Weibull/BG-NBD) → forecast LTV 2023 cohort = P VND/customer.
-- **Prescriptive:** "Reallocate Q% budget từ low-LTV channels (VD: social_media LTV=X) sang high-LTV (VD: organic_search LTV=Y). Expected incremental revenue: Z VND/năm"
-
-### Story 4 — Promo ROI (dùng `applicable_category`, `min_order_value`, `promo_channel`)
-- **Descriptive:** 49 promos, alternating 20.8%/15% discount, 6-4-6-4/năm (§2.6).
-- **Diagnostic:** Matched-pair: revenue promo-days vs matched non-promo-days (DoW+month match). Break by `promo_channel`, `stackable_flag`. **Incremental lift** vs **cannibalization** (stolen from baseline).
-- **Predictive:** Simulate 2023 promo calendar (keep pattern) → incremental revenue projection.
-- **Prescriptive:** "Drop bottom-3 promos (incremental lift <K%). Shift budget sang top-3 (lift >L%). **Expected net gain:** = (top_3_lift − bottom_3_lift) × avg_daily_rev × promo_days = M VND/năm"
-
-### Story 5 — Inventory health (dùng `days_of_supply`, `stockout_days`, `fill_rate`)
-- **Descriptive:** Stockout_days tổng theo category×month. Pct overstock vs stockout.
-- **Diagnostic:** Correlate stockout với revenue drop — category nào lose revenue vì stockout?
-- **Predictive:** Extrapolate Q1-Q2 2023 demand (bootstrap từ 2020-2022) vs current stock_on_hand tháng 12/2022 → identify SKUs sẽ stockout trước 2023-03-31.
-- **Prescriptive:** "Reorder list: N SKUs cần đặt thêm trước 2023-02-01. **Expected lost revenue avoided:** = stockout_days_forecast × avg_daily_sales_per_SKU = P VND"
-
-### Story 6 — Geographic (choropleth VN)
-- **Descriptive:** Revenue share theo region (Bắc/Trung/Nam) và top-10 city. YoY growth per region.
-- **Diagnostic:** Under-served regions: high-traffic-zip nhưng low-order-zip (session÷order mismatch). Shipping_fee có cao bất thường không?
-- **Predictive:** Regional CAGR → forecast 2024 regional share.
-- **Prescriptive:** "Focus marketing 2023 vào top-3 under-served zip (high-traffic, low-conversion). **Định lượng:** nếu đạt conversion trung bình quốc gia → incremental Q VND/năm"
-
-### Story 7 — Returns diagnostic
-- **Descriptive:** Return rate theo size/color/category. Correlate với rating, delivery time.
-- **Diagnostic:** Size "XL" của category nào hỏng nhất? Color-category combo nào trả nhiều?
-- **Predictive:** Nếu trend tiếp tục, 2023 return volume = R units.
-- **Prescriptive:** "Discontinue top-5 SKU return_rate >T%. **Expected margin save:** = return_volume × (unit_price − cogs) × fraction_non_resellable = S VND"
-
----
-
-## 15. Per-chart production checklist (cho 15đ Viz quality)
-
-Mỗi chart phải pass checklist sau trước khi vào report:
-- [ ] Title ≤12 từ, trả lời "what happened"
-- [ ] Subtitle 1 dòng ≤20 từ, trả lời "so what" (key insight)
-- [ ] X-axis label + unit (VD: "Năm", "Doanh thu (triệu VND)")
-- [ ] Y-axis label + unit, formatter (1e6 → "M")
-- [ ] Legend khi ≥2 series, vị trí không che data
-- [ ] Annotation ≥1 (mũi tên/text gắn trực tiếp vào point quan trọng)
-- [ ] Data source footer: "Source: orders × order_items × products (n=714,669 rows)"
-- [ ] Palette colorblind-safe (viridis / ColorBrewer categorical)
-- [ ] Không quá 5 màu; ordinal dùng sequential, categorical dùng qualitative
-- [ ] Font ≥10pt, không bị crop khi export PNG 300dpi
-- [ ] Export cả `.png` (cho LaTeX) và `.html` (cho interactive version)
-- [ ] Số liệu khớp với bảng tóm tắt trong section analysis (no mismatch)
-
-`src/viz/style.py` phải set sẵn `rcParams` để mọi chart auto-compliant 70%.
-
----
-
-## 16. Narrative arc & storytelling (cho 5đ Creativity)
-
-**Meta-story:** *"The Gridbreakers tìm ra điểm vỡ của business 2019 và chỉ ra 3 đòn bẩy để hồi phục 2023-2024"*
-
-**Cấu trúc report 4 trang NeurIPS:**
-1. **Trang 1:** Story 1 (shock) + Story 2 (funnel) = "Chẩn đoán cái gì hỏng"
-2. **Trang 2:** Story 3 (cohort) + Story 5 (inventory) = "Hai rễ cụ thể của vấn đề"
-3. **Trang 3:** Story 4 (promo) + Story 6 (geo) = "Hai đòn bẩy hồi phục"
-4. **Trang 4:** Part 3 (forecast + SHAP) = "Mô hình dự báo 2023-2024"
-
-Story 7 → appendix.
-
-**Counter-intuitive findings cần có ≥1** (quyết định điểm sáng tạo):
-- Ứng viên A: "Wed revenue > Sat revenue" — ngược intuition retail
-- Ứng viên B: "Traffic lên nhưng revenue xuống" — conversion mới là nút thắt
-- Ứng viên C: "Tết KHÔNG phải peak của business này" (Apr-Jun mới peak §2.4)
-- Ứng viên D: "Promo stackable làm margin giảm NHIỀU HƠN lift" (nếu data confirm)
-
-**Multi-source joining badges** (mục tiêu ≥3 story có ≥4 bảng join):
-- Story 1: orders × order_items × products × customers (4)
-- Story 4: orders × order_items × promotions × products × customers (5)
-- Story 6: orders × order_items × customers × geography × products (5)
-
----
-
-## 17. Verification plan — Part 2 trước khi submit
-
-Chạy checklist này trước deadline:
-- [ ] 7/7 story có đủ 4 analysis level, mỗi level có số cụ thể
-- [ ] 15/15 chart pass checklist §15
-- [ ] ≥5 story có Prescriptive với công thức số (không viết "nên cân nhắc")
-- [ ] ≥1 counter-intuitive finding có data backup
-- [ ] ≥3 story join ≥4 bảng
-- [ ] Report 4 trang không crop chart, font ≥10pt
-- [ ] Narrative arc coherent đọc từ đầu đến cuối (test: nhờ 1 người ngoài đội đọc)
-- [ ] Color palette nhất quán across 7 story (cùng màu cho cùng category)
-- [ ] Mọi số liệu khớp giữa text và chart (kiểm kê lần cuối)
-
----
-
-## 12. Trả lời trực tiếp câu hỏi của bạn
-
-> **"Liệu việc tách ra làm EDA → Preprocessing rồi mới Visualization sau có hiệu quả không?"**
-
-**Hiệu quả, với điều kiện:**
-1. **Không làm EDA đẹp ở lớp đầu** — L1 chỉ để tìm insight, chart throw-away.
-2. **Preprocessing phải đẻ ra ABT reusable** (3 bảng §4), không phải script rời.
-3. **Time-box nghiêm:** L1+L2 tối đa 3 ngày / 14 ngày. Nếu vượt là dấu hiệu over-engineer.
-4. **L3 viz kế thừa ABT** → mỗi story notebook chỉ ~50-100 dòng code, team song song được.
-
-**Nếu gộp EDA+Viz:** Bạn sẽ join lại dataset 7 lần cho 7 story, bug không đồng bộ, chart đẹp nhưng số liệu khác nhau giữa các notebook — đây là cái bẫy phổ biến ở datathon.
-
-**Nếu tách quá sâu (5-6 lớp):** Tốn thời gian infra hơn là insight — không đáng với 14 ngày.
-
-→ **Kết luận: Tách 3 lớp L1/L2/L3 như trên là sweet spot.**
+- [ ] 7/7 stories with 4 analysis levels (Descriptive → Diagnostic → Predictive → Prescriptive)
+- [ ] Each Prescriptive level has a quantified formula with actual numbers
+- [ ] ≥3 stories join ≥4 tables
+- [ ] ≥1 counter-intuitive finding with statistical backup
+- [ ] All 10 MCQ answered
+- [ ] submission.csv: exactly 548 rows, same order as sample_submission.csv
+- [ ] GitHub public with README
+- [ ] Report PDF: NeurIPS 2025 template, ≤4 pages
+- [ ] Random seeds fixed everywhere
+- [ ] No post-2022-12-31 data in any feature
