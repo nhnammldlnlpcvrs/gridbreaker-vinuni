@@ -506,8 +506,11 @@ oi_raw = sio.load_order_items()
 from src.cleaning import clean_order_items
 oi_clean = clean_order_items(oi_raw)
 
-oi_clean["promo_id_str"] = oi_clean["promo_id"].astype(str)
-oi_merged = oi_clean.merge(promo_flags, left_on="promo_id_str", right_on="promo_id", how="left")
+oi_clean["promo_id_str"] = oi_clean["promo_id"].fillna("").astype(str)
+oi_merged = oi_clean.merge(
+    promo_flags.rename(columns={"promo_id": "promo_id_str"}),
+    on="promo_id_str", how="left"
+)
 
 # Stackable vs non-stackable
 stackable     = oi_merged[oi_merged["stackable_flag"] == True]

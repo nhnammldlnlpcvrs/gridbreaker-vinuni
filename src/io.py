@@ -72,6 +72,8 @@ def load_order_items() -> pd.DataFrame:
             "quantity": "int16",
             "unit_price": "float32",
             "discount_amount": "float32",
+            "promo_id": "str",
+            "promo_id_2": "str",
         },
     )
 
@@ -96,7 +98,7 @@ def load_returns() -> pd.DataFrame:
         TRANSACTION / "returns.csv",
         parse_dates=["return_date"],
         dtype={
-            "return_id": "int32",
+            "return_id": "str",      # format: RET-000001
             "order_id": "int32",
             "product_id": "int32",
             "return_quantity": "int16",
@@ -108,8 +110,9 @@ def load_returns() -> pd.DataFrame:
 def load_reviews() -> pd.DataFrame:
     return _read(
         TRANSACTION / "reviews.csv",
+        parse_dates=["review_date"],
         dtype={
-            "review_id": "int32",
+            "review_id": "str",      # format: REV-0000001
             "order_id": "int32",
             "product_id": "int32",
             "customer_id": "int32",
