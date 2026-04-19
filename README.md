@@ -1,0 +1,2 @@
+# DATATHON - VinUni 2026
+
