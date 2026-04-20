@@ -68,6 +68,9 @@ pages = {
         st.Page("app_pages/01_revenue_collapse.py",  title="Revenue Collapse",   icon=":material/trending_down:"),
         st.Page("app_pages/02_funnel_customer.py",   title="Funnel & Customer",  icon=":material/filter_alt:"),
         st.Page("app_pages/03_inventory.py",         title="Inventory Paradox",  icon=":material/inventory_2:"),
+        st.Page("app_pages/05_patterns.py",          title="Patterns & Timing",  icon=":material/calendar_month:"),
+        st.Page("app_pages/06_promo.py",             title="Promo ROI",          icon=":material/local_offer:"),
+        st.Page("app_pages/07_geo.py",               title="Geographic",         icon=":material/location_on:"),
     ],
     "STRATEGY": [
         st.Page("app_pages/04_prescriptive.py",      title="Recovery Simulator", icon=":material/auto_fix_high:"),

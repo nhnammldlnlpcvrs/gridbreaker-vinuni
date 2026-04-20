@@ -180,6 +180,96 @@ st.markdown("<div style='margin: 20px 0'></div>", unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
+# KPI Illusion: fill_rate 96% vs stockout_flag 67%
+# ---------------------------------------------------------------------------
+render_section_label("KPI ILLUSION · FILL-RATE VS STOCKOUT FLAG")
+
+fill_mean  = inv["fill_rate"].mean()
+so_rate    = inv["stockout_flag"].mean()
+oo_rate    = inv["overstock_flag"].mean()
+paradox_rt = inv["paradox"].mean()
+
+ki1, ki2, ki3, ki4 = st.columns(4, gap="medium")
+with ki1:
+    st.markdown(
+        f"""
+        <div class="kpi-card" style="border-left:3px solid {COLORS['primary']}">
+          <div class="kpi-label" style="color:{COLORS['primary']}">FILL RATE (mean)</div>
+          <div class="kpi-value" style="font-size:36px; color:{COLORS['primary']}">{fill_mean*100:.1f}%</div>
+          <div style="color:{COLORS['text_dim']};font-size:11px;margin-top:4px">Sounds excellent ✓</div>
+        </div>
+        """, unsafe_allow_html=True,
+    )
+with ki2:
+    st.markdown(
+        f"""
+        <div class="kpi-card" style="border-left:3px solid {COLORS['danger']}">
+          <div class="kpi-label" style="color:{COLORS['danger']}">STOCKOUT FLAG RATE</div>
+          <div class="kpi-value" style="font-size:36px; color:{COLORS['danger']}">{so_rate*100:.1f}%</div>
+          <div style="color:{COLORS['text_dim']};font-size:11px;margin-top:4px">≥1 stockout day/month</div>
+        </div>
+        """, unsafe_allow_html=True,
+    )
+with ki3:
+    st.markdown(
+        f"""
+        <div class="kpi-card" style="border-left:3px solid {COLORS['warning']}">
+          <div class="kpi-label" style="color:{COLORS['warning']}">OVERSTOCK FLAG RATE</div>
+          <div class="kpi-value" style="font-size:36px; color:{COLORS['warning']}">{oo_rate*100:.1f}%</div>
+          <div style="color:{COLORS['text_dim']};font-size:11px;margin-top:4px">Excess at month-end</div>
+        </div>
+        """, unsafe_allow_html=True,
+    )
+with ki4:
+    st.markdown(
+        f"""
+        <div class="kpi-card" style="border-left:3px solid {COLORS['danger']}">
+          <div class="kpi-label" style="color:{COLORS['danger']}">PARADOX RATE</div>
+          <div class="kpi-value" style="font-size:36px; color:{COLORS['danger']}">{paradox_rt*100:.1f}%</div>
+          <div style="color:{COLORS['text_dim']};font-size:11px;margin-top:4px">Both flags = 1</div>
+        </div>
+        """, unsafe_allow_html=True,
+    )
+
+st.markdown("<div style='margin:12px 0'></div>", unsafe_allow_html=True)
+
+# Fill-rate distribution histogram
+fig_fr = __import__("plotly.graph_objects", fromlist=["Figure"]).Figure()
+import plotly.graph_objects as _go
+fig_fr.add_trace(_go.Histogram(
+    x=inv["fill_rate"],
+    nbinsx=40,
+    marker=dict(color=COLORS["primary"], opacity=0.75, line=dict(width=0)),
+    name="fill_rate",
+))
+fig_fr.add_vline(x=fill_mean, line_dash="dash", line_color=COLORS["glow"],
+                 annotation_text=f"Mean {fill_mean*100:.1f}%",
+                 annotation_font=dict(color=COLORS["glow"]))
+apply_theme(fig_fr, height=280,
+            title=f"Fill-rate distribution — mean {fill_mean*100:.1f}% masks {so_rate*100:.0f}% of SKUs having ≥1 stockout day")
+fig_fr.update_xaxes(title="Fill rate (fraction of days with stock)", tickformat=".0%")
+fig_fr.update_yaxes(title="Product-months")
+st.plotly_chart(fig_fr, use_container_width=True)
+
+render_insight(
+    title="The KPI illusion:",
+    level="danger",
+    body=(
+        "Management reporting <strong>fill_rate = 96.1%</strong> would believe inventory "
+        "is well-managed. But <strong>stockout_flag = 67.3%</strong> of SKUs experience "
+        "at least 1 stockout day per month. The reconciliation: "
+        "<em>fill_rate = fraction of days with stock</em> — even 1 day of stockout in a "
+        "31-day month gives fill_rate = 96.8% while still triggering stockout_flag. "
+        "In high-velocity fashion e-commerce, even 1–2 days of stockout on a trending "
+        "SKU can permanently lose a sale. "
+        "<strong>Recommended primary KPI: stockout_days_per_month, not fill_rate.</strong>"
+    ),
+)
+
+st.markdown("<div style='margin: 20px 0'></div>", unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------------------------
 # Prescriptive roadmap table
 # ---------------------------------------------------------------------------
 render_section_label("PRESCRIPTIVE · 3-ACTION ROADMAP")

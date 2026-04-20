@@ -140,46 +140,73 @@ st.markdown("<div style='margin: 20px 0'></div>", unsafe_allow_html=True)
 # ---------------------------------------------------------------------------
 # Middle: Channel efficiency bubble
 # ---------------------------------------------------------------------------
-render_section_label("CHANNEL · EFFICIENCY BUBBLE")
+render_section_label("CHANNEL · LTV & EFFICIENCY BUBBLE")
 
+# Join items for net_revenue per channel
+ord_items_ch = (
+    orders.merge(customers[["customer_id", "acquisition_channel"]], on="customer_id", how="left")
+    .merge(items.groupby("order_id")["net_revenue"].sum().reset_index(), on="order_id", how="left")
+)
 channel_stats = (
-    customers.merge(orders, on="customer_id", how="left")
-    .groupby("acquisition_channel")
+    ord_items_ch.groupby("acquisition_channel")
     .agg(
         orders=("order_id", "count"),
         customers=("customer_id", "nunique"),
         cancelled=("order_status", lambda s: (s == "cancelled").sum()),
+        total_revenue=("net_revenue", "sum"),
     )
     .reset_index()
 )
 channel_stats["orders_per_cust"] = channel_stats["orders"] / channel_stats["customers"]
 channel_stats["cancel_rate"] = channel_stats["cancelled"] / channel_stats["orders"]
+channel_stats["ltv_per_cust"] = channel_stats["total_revenue"] / channel_stats["customers"]
 channel_stats = channel_stats.dropna(subset=["acquisition_channel"])
 
-fig = go.Figure()
-for _, row in channel_stats.iterrows():
-    fig.add_trace(go.Scatter(
-        x=[row["orders_per_cust"]],
-        y=[row["cancel_rate"] * 100],
-        mode="markers+text",
-        marker=dict(
-            size=np.sqrt(row["customers"]) / 3,
-            color=CHANNEL_COLORS.get(row["acquisition_channel"], COLORS["primary"]),
-            line=dict(color=COLORS["text_hi"], width=1),
-            opacity=0.85,
-        ),
-        text=[row["acquisition_channel"]],
-        textposition="top center",
-        textfont=dict(size=11, color=COLORS["text_med"]),
-        name=row["acquisition_channel"],
-        showlegend=False,
-    ))
+ch_left, ch_right = st.columns(2, gap="medium")
 
-apply_theme(fig, height=380,
-            title="Orders per customer vs Cancel rate — bubble size = customer volume")
-fig.update_xaxes(title="Orders per customer")
-fig.update_yaxes(title="Cancel rate (%)", ticksuffix="%")
-st.plotly_chart(fig, use_container_width=True)
+with ch_left:
+    fig = go.Figure()
+    for _, row in channel_stats.iterrows():
+        fig.add_trace(go.Scatter(
+            x=[row["ltv_per_cust"]],
+            y=[row["cancel_rate"] * 100],
+            mode="markers+text",
+            marker=dict(
+                size=np.sqrt(row["customers"]) / 3,
+                color=CHANNEL_COLORS.get(row["acquisition_channel"], COLORS["primary"]),
+                line=dict(color=COLORS["text_hi"], width=1),
+                opacity=0.85,
+            ),
+            text=[row["acquisition_channel"]],
+            textposition="top center",
+            textfont=dict(size=11, color=COLORS["text_med"]),
+            name=row["acquisition_channel"],
+            showlegend=False,
+        ))
+    apply_theme(fig, height=360,
+                title="LTV per customer vs Cancel rate — bubble = customer volume")
+    fig.update_xaxes(title="LTV per customer (₫)")
+    fig.update_yaxes(title="Cancel rate (%)", ticksuffix="%")
+    st.plotly_chart(fig, use_container_width=True)
+
+with ch_right:
+    ch_sorted = channel_stats.sort_values("ltv_per_cust", ascending=True)
+    fig2 = go.Figure(go.Bar(
+        y=ch_sorted["acquisition_channel"],
+        x=ch_sorted["ltv_per_cust"],
+        orientation="h",
+        marker=dict(
+            color=[CHANNEL_COLORS.get(c, COLORS["primary"]) for c in ch_sorted["acquisition_channel"]],
+            line=dict(width=0),
+        ),
+        text=[fmt_vnd(v) for v in ch_sorted["ltv_per_cust"]],
+        textposition="outside",
+        textfont=dict(color=COLORS["text_hi"], size=10),
+    ))
+    apply_theme(fig2, height=360, title="LTV per customer by acquisition channel")
+    fig2.update_xaxes(title="LTV (₫)")
+    fig2.update_yaxes(title="")
+    st.plotly_chart(fig2, use_container_width=True)
 
 
 st.markdown("<div style='margin: 20px 0'></div>", unsafe_allow_html=True)

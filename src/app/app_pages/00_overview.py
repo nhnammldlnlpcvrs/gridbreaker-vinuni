@@ -228,27 +228,38 @@ with b2:
     fig.update_yaxes(title="")
     st.plotly_chart(fig, use_container_width=True)
 
-# --- Bento 3: Orders by device donut ---
+# --- Bento 3: Wed>Sat day-of-week bar ---
 with b3:
-    render_section_label("ORDERS · DEVICE MIX")
-    dev = orders["device_type"].value_counts().reset_index()
-    dev.columns = ["device", "orders"]
-    fig = go.Figure(go.Pie(
-        labels=dev["device"], values=dev["orders"],
-        hole=0.62,
-        marker=dict(colors=[COLORS["primary"], COLORS["info"], COLORS["warning"]]),
-        textinfo="label+percent",
-        textfont=dict(color=COLORS["text_hi"], size=13),
+    render_section_label("REVENUE · DAY OF WEEK")
+    DOW_ORDER = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
+    abt_tmp = abt.copy()
+    abt_tmp["dow_name"] = abt_tmp["date"].dt.day_name() if hasattr(abt_tmp["date"], "dt") else \
+        pd.to_datetime(abt_tmp["date"]).dt.day_name() if "date" in abt_tmp.columns else None
+    if "dow_name" not in abt_tmp.columns or abt_tmp["dow_name"].isna().all():
+        import pandas as _pd
+        abt_tmp["dow_name"] = _pd.to_datetime(abt_tmp.index).day_name()
+    dow_avg = (
+        abt_tmp.groupby("dow_name")["Revenue"].mean()
+        .reindex(DOW_ORDER)
+        .reset_index()
+    )
+    dow_avg.columns = ["dow", "avg_rev"]
+    dow_avg["color"] = dow_avg["dow"].apply(
+        lambda d: COLORS["primary"] if d == "Wednesday" else
+                  COLORS["warning"] if d in ("Saturday", "Sunday") else
+                  COLORS["info"]
+    )
+    fig = go.Figure(go.Bar(
+        x=dow_avg["dow"].str[:3],
+        y=dow_avg["avg_rev"] / 1e6,
+        marker=dict(color=dow_avg["color"].tolist(), line=dict(width=0)),
+        text=[f"{v/1e6:.2f}M" for v in dow_avg["avg_rev"]],
+        textposition="outside",
+        textfont=dict(color=COLORS["text_hi"], size=9),
     ))
     apply_theme(fig, height=300, title=None)
-    fig.update_layout(
-        showlegend=False,
-        annotations=[dict(
-            text=f"<b>{fmt_num(dev['orders'].sum(),1)}</b><br><span style='font-size:11px;color:{COLORS['text_dim']}'>orders</span>",
-            x=0.5, y=0.5, font_size=22, showarrow=False,
-            font=dict(color=COLORS["text_hi"]),
-        )],
-    )
+    fig.update_yaxes(title="M₫/day")
+    fig.update_xaxes(title="")
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -256,6 +267,17 @@ with b3:
 # Narrative insights
 # ---------------------------------------------------------------------------
 st.markdown("<div style='margin: 20px 0'></div>", unsafe_allow_html=True)
+
+render_insight(
+    title="Total economic cost of conversion failure (2017–2022):",
+    level="danger",
+    body=(
+        "If conversion had stayed at the 2016 rate (0.98%) on actual sessions, "
+        "the business would have generated an estimated <strong>~4.6 billion VND</strong> "
+        "more in revenue over 6 years. "
+        "That is the cumulative cost of letting the funnel break without intervention."
+    ),
+)
 
 render_insight(
     title="The contradiction:",
