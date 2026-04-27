@@ -18,9 +18,6 @@ build/
 data/interim/
 data/processed/
 
-# Reports figures (generated, không commit)
-reports/figures/
-reports/*.png
 
 # IDE
 .vscode/
