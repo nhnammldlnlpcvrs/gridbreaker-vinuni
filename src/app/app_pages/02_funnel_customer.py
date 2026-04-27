@@ -48,16 +48,21 @@ with left:
     total_sessions = int(abt["sessions_total"].sum())
     total_orders = int(orders["order_id"].nunique())
     delivered = int((orders["order_status"] == "delivered").sum())
-    # Reviews are ~20% of delivered per spec
-    reviewed_est = int(delivered * 0.20)
+    # Load actual reviews count from dataset
+    _DATASET = __import__("pathlib").Path(__file__).resolve().parents[3] / "dataset"
+    _reviews = __import__("pandas").read_csv(_DATASET / "Transaction" / "reviews.csv")
+    actual_reviews = int(_reviews["review_id"].nunique())
 
     fig = go.Figure(go.Funnel(
-        y=["Sessions", "Orders", "Delivered", "Reviewed (~20%)"],
-        x=[total_sessions, total_orders, delivered, reviewed_est],
+        y=["Sessions", "Orders", "Delivered", "Reviewed"],
+        x=[total_sessions, total_orders, delivered, actual_reviews],
         textinfo="value+percent previous",
-        marker=dict(color=[COLORS["info"], COLORS["primary"],
-                           COLORS["glow"], COLORS["warning"]]),
-        connector=dict(line=dict(color=COLORS["text_dim"], dash="dot")),
+        marker=dict(
+            color=[COLORS["info"], COLORS["primary"], COLORS["glow"], COLORS["warning"]],
+            opacity=1.0,
+            line=dict(color=COLORS["bg_deep"], width=2),
+        ),
+        connector=dict(line=dict(color=COLORS["text_dim"], dash="dot", width=1.5)),
     ))
     apply_theme(fig, height=420, title=None)
     st.plotly_chart(fig, use_container_width=True)
@@ -93,14 +98,14 @@ with right:
         customers[["customer_id", "signup_date"]], on="customer_id", how="left",
     )
     orders_with_customer["cohort"] = (
-        orders_with_customer["signup_date"].dt.to_period("Q").astype(str)
+        orders_with_customer["signup_date"].dt.to_period("Y").astype(str)
     )
     orders_with_customer["order_period"] = (
-        orders_with_customer["order_date"].dt.to_period("Q").astype(str)
+        orders_with_customer["order_date"].dt.to_period("Y").astype(str)
     )
     orders_with_customer["periods_since"] = (
-        orders_with_customer["order_date"].dt.to_period("Q").astype("int64")
-        - orders_with_customer["signup_date"].dt.to_period("Q").astype("int64")
+        orders_with_customer["order_date"].dt.to_period("Y").astype("int64")
+        - orders_with_customer["signup_date"].dt.to_period("Y").astype("int64")
     )
     orders_with_customer = orders_with_customer[orders_with_customer["periods_since"] >= 0]
 
@@ -112,12 +117,12 @@ with right:
         .nunique().unstack(fill_value=0)
     )
     retention = cohort_matrix.div(cohort_sizes, axis=0) * 100
-    # Keep last 20 cohorts × first 10 periods for readability
-    retention = retention.tail(20).iloc[:, :10]
+    # Annual cohorts: ~11 rows (2012–2022) × first 10 periods
+    retention = retention.tail(11).iloc[:, :10]
 
     fig = go.Figure(go.Heatmap(
         z=retention.values,
-        x=[f"+{int(q)}Q" for q in retention.columns],
+        x=[f"+{int(q)}Y" for q in retention.columns],
         y=retention.index,
         colorscale=[[0, COLORS["bg_deep"]],
                     [0.4, COLORS["primary_dim"]],
@@ -128,8 +133,9 @@ with right:
         colorbar=dict(title=dict(text="% retained", side="right")),
         zmin=0, zmax=100,
     ))
-    apply_theme(fig, height=420, title="Cohort retention (% returning in quarter N)")
-    fig.update_xaxes(title="Quarters since signup", side="top")
+    apply_theme(fig, height=420, title="Cohort retention (% returning in year N)")
+    fig.update_xaxes(title="Years since signup", side="top",
+                     labelalias={str(i): f"+{i}Y" for i in range(10)})
     fig.update_yaxes(title="Signup cohort")
     st.plotly_chart(fig, use_container_width=True)
 
@@ -185,7 +191,7 @@ with ch_left:
         ))
     apply_theme(fig, height=360,
                 title="LTV per customer vs Cancel rate — bubble = customer volume")
-    fig.update_xaxes(title="LTV per customer (₫)")
+    fig.update_xaxes(title="LTV per customer (VND)")
     fig.update_yaxes(title="Cancel rate (%)", ticksuffix="%")
     st.plotly_chart(fig, use_container_width=True)
 
@@ -204,7 +210,7 @@ with ch_right:
         textfont=dict(color=COLORS["text_hi"], size=10),
     ))
     apply_theme(fig2, height=360, title="LTV per customer by acquisition channel")
-    fig2.update_xaxes(title="LTV (₫)")
+    fig2.update_xaxes(title="LTV (VND)")
     fig2.update_yaxes(title="")
     st.plotly_chart(fig2, use_container_width=True)
 

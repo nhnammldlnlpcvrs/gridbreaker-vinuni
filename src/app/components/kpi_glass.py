@@ -19,7 +19,7 @@ def render_kpi(
     Parameters
     ----------
     label      : short label on top (e.g. "REVENUE")
-    value      : the main number already formatted (e.g. "14.4 B₫")
+    value      : the main number already formatted (e.g. "14.4 B VND")
     delta      : delta string (e.g. "▼ -46%") or None
     delta_kind : one of {"up", "down", "flat"} — drives colour
     caption    : small subtext under the delta (e.g. "vs 2016 peak")

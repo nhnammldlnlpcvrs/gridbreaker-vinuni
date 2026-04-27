@@ -62,21 +62,25 @@ render_page_header(
 # ---------------------------------------------------------------------------
 cols = st.columns(5, gap="medium")
 
-total_rev = yearly["revenue"].sum()
+rev_2022 = float(yearly.loc[yearly["year"] == 2022, "revenue"].iloc[0])
+rev_2021 = float(yearly.loc[yearly["year"] == 2021, "revenue"].iloc[0])
+yoy_delta = rev_2022 / rev_2021 - 1
 total_orders = yearly["orders"].sum()
 total_cust = customers["customer_id"].nunique()
 avg_aov = last["aov"]
 avg_margin = yearly["margin_pct"].mean()
 
-rev_delta = (last["revenue"] - peak["revenue"]) / peak["revenue"]
 orders_delta = (last["orders"] - peak["orders"]) / peak["orders"]
 cust_delta = (customers["signup_date"].dt.year == int(last["year"])).sum() \
              / max((customers["signup_date"].dt.year == int(peak["year"])).sum(), 1) - 1
 
 with cols[0]:
-    render_kpi("TOTAL REVENUE", fmt_vnd(total_rev),
-               delta=f"▼ {rev_delta*100:.0f}%", delta_kind="down",
-               caption=f"2022 vs {int(peak['year'])} peak")
+    render_kpi(
+        "2022 REVENUE", fmt_vnd(rev_2022),
+        delta=f"{'▲' if yoy_delta > 0 else '▼'} {abs(yoy_delta)*100:.0f}% YoY",
+        delta_kind="up" if yoy_delta > 0 else "down",
+        caption=f"peak was {fmt_vnd(float(peak['revenue']))} ({int(peak['year'])})",
+    )
 with cols[1]:
     render_kpi("TOTAL ORDERS", fmt_num(total_orders, 1),
                delta=f"▼ {orders_delta*100:.0f}%", delta_kind="down",
@@ -110,7 +114,7 @@ with hero_left:
     fig.add_trace(
         go.Scatter(
             x=yearly["year"], y=yearly["revenue"] / 1e9,
-            name="Revenue (B₫)", mode="lines+markers",
+            name="Revenue (B VND)", mode="lines+markers",
             line=dict(color=COLORS["primary"], width=3),
             marker=dict(size=8),
             fill="tozeroy",
@@ -126,7 +130,7 @@ with hero_left:
         ), secondary_y=True,
     )
     apply_theme(fig, height=380, title="Revenue vs Traffic — the contradiction")
-    fig.update_yaxes(title_text="Revenue (B₫)", secondary_y=False)
+    fig.update_yaxes(title_text="Revenue (B VND)", secondary_y=False)
     fig.update_yaxes(title_text="Sessions (M)", secondary_y=True)
     fig.update_xaxes(title_text="Year", dtick=1)
     annotate(fig, x=int(peak["year"]), y=peak["revenue"]/1e9,
@@ -142,7 +146,10 @@ with hero_right:
     st.markdown(
         f"""
         <div class="kpi-card" style="border-left: 3px solid {COLORS['danger']}; min-height: 380px">
-          <div style="font-size: 42px; margin-bottom: 8px">⚠️</div>
+          <span class="material-symbols-rounded"
+                style="font-size:42px; color:{COLORS['danger']}; display:block; margin-bottom:8px">
+            warning
+          </span>
           <div class="kpi-label" style="color: {COLORS['danger']}">INVENTORY PARADOX</div>
           <div class="kpi-value" style="font-size: 44px; color: {COLORS['danger']}">50.6%</div>
           <div style="color: {COLORS['text_med']}; font-size: 13px; margin-top: 10px; line-height: 1.5">
@@ -258,7 +265,7 @@ with b3:
         textfont=dict(color=COLORS["text_hi"], size=9),
     ))
     apply_theme(fig, height=300, title=None)
-    fig.update_yaxes(title="M₫/day")
+    fig.update_yaxes(title="M VND/day")
     fig.update_xaxes(title="")
     st.plotly_chart(fig, use_container_width=True)
 

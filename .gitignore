@@ -49,3 +49,6 @@ submission*.csv
 *.synctex.gz
 *.fls
 *.fdb_latexmk
+.claude/
+*.md
+*.png

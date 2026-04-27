@@ -65,12 +65,12 @@ with left:
             colorscale=[[0, COLORS["primary_dim"]], [1, COLORS["glow"]]],
             line=dict(width=0),
         ),
-        text=[f"{v/1e9:.2f} B₫" for v in city_stats["revenue"]],
+        text=[f"{v/1e9:.2f} B VND" for v in city_stats["revenue"]],
         textposition="outside",
         textfont=dict(color=COLORS["text_hi"], size=10),
     ))
     apply_theme(fig, height=560, title="Top 20 cities by total revenue (2012–2022)")
-    fig.update_xaxes(title="Revenue (B₫)")
+    fig.update_xaxes(title="Revenue (B VND)")
     fig.update_yaxes(title="", autorange="reversed")
     st.plotly_chart(fig, use_container_width=True)
 
@@ -161,22 +161,35 @@ fig3 = go.Figure(go.Scatter(
         line=dict(color=COLORS["text_hi"], width=0.8),
         opacity=0.80,
         showscale=True,
-        colorbar=dict(title="Revenue (₫)"),
+        colorbar=dict(title="Revenue (VND)"),
     ),
     text=top_aov["city"],
     textposition="top center",
     textfont=dict(size=10, color=COLORS["text_med"]),
     hovertemplate=(
         "<b>%{text}</b><br>Orders: %{x:,.0f}<br>"
-        "AOV: %{y:,.0f}₫<extra></extra>"
+        "AOV: %{y:,.0f}VND<extra></extra>"
     ),
 ))
 apply_theme(fig3, height=420,
             title="Orders vs AOV per city — bubble size = unique customers")
 fig3.update_xaxes(title="Total orders", tickformat=",")
-fig3.update_yaxes(title="Avg order value (₫)")
+fig3.update_yaxes(title="Avg order value (VND)")
 st.plotly_chart(fig3, use_container_width=True)
 
+
+render_insight(
+    title="Data note — city distribution reflects simulation geography:",
+    level="warning",
+    body=(
+        "Real Vietnamese e-commerce skews heavily toward HCMC and Hanoi (typically "
+        "60%+ of revenue). This dataset's flat distribution across smaller cities "
+        "(Son Tay, Nam Dinh, Thai Nguyen) reflects the synthetic zip→city mapping "
+        "in the simulation. Geographic <em>relative</em> comparisons (channel mix "
+        "by city, AOV by city) remain valid; absolute city rankings should not be "
+        "used to draw market-entry conclusions."
+    ),
+)
 
 render_insight(
     title="Geographic concentration risk:",

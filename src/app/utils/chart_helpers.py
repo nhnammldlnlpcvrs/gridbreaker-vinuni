@@ -13,7 +13,7 @@ def apply_theme(fig: go.Figure, height: int = 420, title: str | None = None) -> 
         fig.update_layout(
             title=dict(
                 text=title,
-                font=dict(family="Playfair Display", size=20, color=COLORS["text_hi"]),
+                font=dict(family="Fraunces, Georgia, serif", size=18, color=COLORS["text_hi"]),
                 x=0.01, xanchor="left",
             )
         )
@@ -28,7 +28,7 @@ def annotate(fig: go.Figure, x, y, text: str, color: str | None = None,
         x=x, y=y, text=text, showarrow=arrow, arrowhead=2,
         arrowcolor=c, arrowwidth=1.5,
         ax=ax, ay=ay,
-        font=dict(family="Inter", size=12, color=c),
+        font=dict(family="Plus Jakarta Sans", size=12, color=c),
         bgcolor="rgba(10,31,26,0.85)",
         bordercolor=c, borderwidth=1, borderpad=4,
     )
