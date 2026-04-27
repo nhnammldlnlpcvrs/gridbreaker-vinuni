@@ -18,7 +18,7 @@ import streamlit as st
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 INTERIM = PROJECT_ROOT / "data" / "interim"
 PROCESSED = PROJECT_ROOT / "data" / "processed"
-DATASET = PROJECT_ROOT / "dataset"
+DATASET = PROJECT_ROOT / "data" / "raw"
 
 TRAIN_CUTOFF = pd.Timestamp("2022-12-31")
 

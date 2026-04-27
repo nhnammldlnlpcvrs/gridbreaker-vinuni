@@ -12,7 +12,7 @@ from components.page_header import render_page_header
 from utils.chart_helpers import apply_theme
 from utils.data_loader import COLORS, fmt_vnd, fmt_pct, load_abt_daily
 
-DATASET = __import__("pathlib").Path(__file__).resolve().parents[3] / "dataset"
+DATASET = __import__("pathlib").Path(__file__).resolve().parents[3] / "data" / "raw"
 TRAIN_CUTOFF = pd.Timestamp("2022-12-31")
 
 abt = load_abt_daily()
