@@ -1,0 +1,320 @@
+\documentclass{article}
+
+% =========================================================
+% NeurIPS 2026 Template
+% =========================================================
+\usepackage[preprint]{neurips_2025}
+
+% =========================================================
+% Vietnamese Support
+% =========================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+
+% =========================================================
+% Packages
+% =========================================================
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{multirow}
+\usepackage{enumitem}
+
+% =========================================================
+% Reduce whitespace for 4-page limit
+% =========================================================
+\setlist{nosep}
+\setlength{\textfloatsep}{8pt}
+\setlength{\floatsep}{6pt}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{0pt}
+
+% =========================================================
+% Title
+% =========================================================
+\title{
+	DATATHON 2026 --- The Gridbreakers \\
+	\large Phân tích Dữ liệu và Dự báo Doanh thu cho Thương mại Điện tử Thời trang
+}
+
+% =========================================================
+% Authors
+% =========================================================
+\author{
+	Epsilon Delta \\
+	Trường Đại học Khoa học Tự nhiên - ĐHQG TP.HCM \\
+	Trường Đại học Công nghệ Thông tin - ĐHQG TP.HCM \\
+	\texttt{namnqs12@gmail.com}
+}
+
+% =========================================================
+% Document
+% =========================================================
+\begin{document}
+	
+	\maketitle
+	
+	% =========================================================
+	% Abstract
+	% =========================================================
+	\begin{abstract}
+		
+		Báo cáo trình bày giải pháp của nhóm cho bài toán phân tích dữ liệu và dự báo doanh thu trong DATATHON 2026 --- The Gridbreakers.		
+		Nhóm thực hiện exploratory data analysis (EDA), phân tích hành vi khách hàng, hiệu quả vận hành và xây dựng pipeline machine learning cho bài toán dự báo doanh thu chuỗi thời gian.		
+		Kết quả cho thấy các yếu tố như traffic website, mùa vụ, khuyến mãi và tồn kho có ảnh hưởng mạnh đến doanh thu. Mô hình ensemble kết hợp boosting và deep learning giúp cải thiện đáng kể độ chính xác dự báo.
+
+	\end{abstract}
+	
+	% =========================================================
+	% 1. Introduction
+	% =========================================================
+	\section{Giới thiệu}
+	
+	Sự phát triển nhanh của thương mại điện tử đòi hỏi doanh nghiệp phải tối ưu vận hành dựa trên dữ liệu. Trong bài toán này, mục tiêu của nhóm gồm:
+	
+	\begin{itemize}
+		\item Khám phá insight kinh doanh từ dữ liệu
+		\item Phân tích hành vi khách hàng và hiệu quả vận hành
+		\item Dự báo doanh thu tương lai
+		\item Đề xuất chiến lược kinh doanh dựa trên dữ liệu
+	\end{itemize}
+	
+	Bộ dữ liệu bao gồm thông tin giao dịch, tồn kho, traffic website, khuyến mãi và đánh giá khách hàng trong giai đoạn 2012--2022.
+	
+	% =========================================================
+	% 2. Exploratory Data Analysis
+	% =========================================================
+	\section{Phân tích dữ liệu}
+	
+	% ---------------------------------------------------------
+	\subsection{Xu hướng doanh thu}
+	
+	\begin{figure}[H]
+		\centering
+		%\includegraphics[width=\linewidth]{figures/revenue_trend.png}
+		\caption{Xu hướng doanh thu theo thời gian}
+	\end{figure}
+	
+	Doanh thu tăng mạnh trong giai đoạn đầu, đạt đỉnh vào khoảng năm 2016 rồi bắt đầu ổn định. Các đỉnh doanh thu thường xuất hiện trong mùa khuyến mãi và cuối năm.
+	
+	\textbf{Insight:}
+	Nhu cầu có tính mùa vụ rõ rệt, cần tối ưu kế hoạch tồn kho và logistics vào các giai đoạn cao điểm.
+	
+	% ---------------------------------------------------------
+	\subsection{Traffic và doanh thu}
+	
+	\begin{figure}[H]
+		\centering
+		%\includegraphics[width=\linewidth]{figures/traffic_vs_revenue.png}
+		\caption{So sánh traffic website và doanh thu}
+	\end{figure}
+	
+	Traffic website tăng liên tục nhưng doanh thu không tăng tương ứng sau năm 2016.
+	
+	\textbf{Diagnostic Analysis:}
+	
+	\begin{itemize}
+		\item Conversion rate có xu hướng giảm
+		\item Traffic tăng nhưng chất lượng người dùng thấp hơn
+		\item Một số kênh marketing tạo nhiều traffic nhưng ít chuyển đổi
+	\end{itemize}
+	
+	\textbf{Khuyến nghị:}
+	
+	\begin{itemize}
+		\item Tối ưu conversion funnel
+		\item Tập trung vào traffic chất lượng cao
+		\item Cải thiện trải nghiệm người dùng
+	\end{itemize}
+	
+	% ---------------------------------------------------------
+	\subsection{Phân tích khách hàng}
+	
+	\begin{figure}[H]
+		\centering
+		%\includegraphics[width=\linewidth]{figures/customer_segment.png}
+		\caption{Tần suất mua hàng theo nhóm tuổi}
+	\end{figure}
+	
+	Nhóm khách hàng 25--34 tuổi có số lượng đơn hàng trung bình cao nhất.
+	
+	\textbf{Business Insight:}
+	
+	\begin{itemize}
+		\item Đây là nhóm khách hàng giá trị cao
+		\item Có khả năng phản hồi tốt với marketing cá nhân hoá
+	\end{itemize}
+	
+	\textbf{Prescriptive Recommendation:}
+	
+	\begin{itemize}
+		\item Tăng retention campaign cho nhóm 25--34
+		\item Triển khai loyalty program
+	\end{itemize}
+	
+	% ---------------------------------------------------------
+	\subsection{Phân tích hoàn trả sản phẩm}
+	
+	\begin{figure}[H]
+		\centering
+		%\includegraphics[width=\linewidth]{figures/return_reason.png}
+		\caption{Các nguyên nhân hoàn trả phổ biến}
+	\end{figure}
+	
+	Lý do hoàn trả phổ biến nhất là sai kích thước và lỗi sản phẩm.
+	
+	\textbf{Ý nghĩa kinh doanh:}
+	
+	\begin{itemize}
+		\item Tăng chi phí logistics ngược
+		\item Ảnh hưởng trải nghiệm khách hàng
+	\end{itemize}
+	
+	\textbf{Đề xuất:}
+	
+	\begin{itemize}
+		\item Cải thiện size recommendation
+		\item Tăng kiểm soát chất lượng sản phẩm
+	\end{itemize}
+	
+	% =========================================================
+	% 3. Forecasting Methodology
+	% =========================================================
+	\section{Dự báo doanh thu}
+	
+	% ---------------------------------------------------------
+	\subsection{Feature Engineering}
+	
+	Nhóm xây dựng các đặc trưng:
+	
+	\begin{itemize}
+		\item Đặc trưng thời gian:
+		day-of-week, month, quarter, holiday
+		
+		\item Lag features:
+		lag-1, lag-7, lag-30
+		
+		\item Rolling statistics:
+		rolling mean, rolling std
+		
+		\item Đặc trưng vận hành:
+		inventory, stockout, traffic
+	\end{itemize}
+	
+	% ---------------------------------------------------------
+	\subsection{Validation Strategy}
+	
+	Để tránh temporal leakage, nhóm sử dụng TimeSeriesSplit.
+	
+	\begin{figure}[H]
+		\centering
+		%\includegraphics[width=0.9\linewidth]{figures/timeseries_cv.png}
+		\caption{Time-series cross-validation}
+	\end{figure}
+	
+	% ---------------------------------------------------------
+	\subsection{Mô hình}
+	
+	Các mô hình được thử nghiệm:
+	
+	\begin{itemize}
+		\item LightGBM
+		\item XGBoost
+		\item CatBoost
+		\item LSTM
+		\item Ensemble Blending
+	\end{itemize}
+	
+	Mô hình cuối cùng là ensemble giữa boosting và deep learning.
+	
+	% ---------------------------------------------------------
+	\subsection{Feature Importance}
+	
+	\begin{figure}[H]
+		\centering
+		%\includegraphics[width=\linewidth]{figures/shap_summary.png}
+		\caption{SHAP feature importance}
+	\end{figure}
+	
+	Các yếu tố ảnh hưởng mạnh nhất:
+	
+	\begin{itemize}
+		\item Traffic website
+		\item Lag revenue
+		\item Seasonal features
+		\item Promotion indicators
+	\end{itemize}
+	
+	% =========================================================
+	% 4. Results
+	% =========================================================
+	\section{Kết quả}
+	
+	\begin{table}[H]
+		\centering
+		\caption{Kết quả mô hình}
+		\begin{tabular}{lccc}
+			\toprule
+			Model & MAE & RMSE & R$^2$ \\
+			\midrule
+			LightGBM & XXX & XXX & XXX \\
+			XGBoost & XXX & XXX & XXX \\
+			CatBoost & XXX & XXX & XXX \\
+			LSTM & XXX & XXX & XXX \\
+			Ensemble & \textbf{XXX} & \textbf{XXX} & \textbf{XXX} \\
+			\bottomrule
+		\end{tabular}
+	\end{table}
+	
+	Ensemble model cho kết quả tốt nhất trên validation set nhờ khả năng kết hợp giữa học quan hệ phi tuyến và đặc trưng chuỗi thời gian.
+	
+	% =========================================================
+	% 5. Conclusion
+	% =========================================================
+	\section{Kết luận}
+	
+	Báo cáo đã thực hiện phân tích dữ liệu đa chiều và xây dựng mô hình dự báo doanh thu cho doanh nghiệp thương mại điện tử thời trang.
+	
+	Các insight chính:
+	
+	\begin{itemize}
+		\item Doanh thu chịu ảnh hưởng mạnh bởi mùa vụ và traffic
+		\item Conversion efficiency giảm theo thời gian
+		\item Nhóm khách hàng 25--34 tuổi mang lại giá trị cao
+		\item Inventory và stockout có ảnh hưởng trực tiếp tới doanh thu
+	\end{itemize}
+	
+	Mô hình ensemble giúp cải thiện hiệu suất dự báo và hỗ trợ doanh nghiệp tối ưu vận hành trong tương lai.
+	
+	% =========================================================
+	% GitHub
+	% =========================================================
+	\section*{GitHub Repository}
+	
+	\url{https://github.com/nhnammldlnlpcvrs/gridbreaker-vinuni.git}
+	
+	% =========================================================
+	% References
+	% =========================================================
+	\section*{References}
+	
+	{\small
+		
+		[1] Ke, G. et al. LightGBM: A Highly Efficient Gradient Boosting Decision Tree. NeurIPS, 2017.
+		
+		[2] Chen, T. and Guestrin, C. XGBoost: A Scalable Tree Boosting System. KDD, 2016.
+		
+		[3] Lundberg, S. and Lee, S. A Unified Approach to Interpreting Model Predictions. NeurIPS, 2017.
+		
+	}
+	
+\end{document}
