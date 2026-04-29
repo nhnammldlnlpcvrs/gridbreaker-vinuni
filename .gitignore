@@ -18,9 +18,6 @@ build/
 data/interim/
 data/processed/
 
-# Reports figures (generated, không commit)
-reports/figures/
-reports/*.png
 
 # IDE
 .vscode/
@@ -49,3 +46,7 @@ submission*.csv
 *.synctex.gz
 *.fls
 *.fdb_latexmk
+CLAUDE.md
+.claude/
+docs/archive
+PLAN_TRAINING.md
