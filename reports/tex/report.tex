@@ -1,21 +1,9 @@
 \documentclass{article}
-
-% =========================================================
-% NeurIPS 2026 Template
-% =========================================================
-\usepackage[preprint]{neurips_2025}
-
-% =========================================================
-% Vietnamese Support
-% =========================================================
+\usepackage[preprint,nonatbib]{neurips_2025}
 \usepackage[utf8]{inputenc}
 \usepackage[T5]{fontenc}
 \usepackage[vietnamese]{babel}
-
-% =========================================================
-% Packages
-% =========================================================
-\usepackage{hyperref}
+\usepackage[unicode]{hyperref}
 \usepackage{url}
 \usepackage{booktabs}
 \usepackage{amsfonts}
@@ -28,293 +16,200 @@
 \usepackage{float}
 \usepackage{multirow}
 \usepackage{enumitem}
-
-% =========================================================
-% Reduce whitespace for 4-page limit
-% =========================================================
 \setlist{nosep}
-\setlength{\textfloatsep}{8pt}
-\setlength{\floatsep}{6pt}
-\setlength{\abovecaptionskip}{4pt}
+\setlength{\textfloatsep}{3pt}
+\setlength{\floatsep}{1pt}
+\setlength{\intextsep}{1pt}
+\setlength{\abovecaptionskip}{1pt}
 \setlength{\belowcaptionskip}{0pt}
-
-% =========================================================
-% Title
-% =========================================================
+\setlength{\parskip}{3pt}
+\setlength{\abovedisplayskip}{4pt}
+\setlength{\belowdisplayskip}{4pt}
+\setlength{\abovedisplayshortskip}{2pt}
+\setlength{\belowdisplayshortskip}{2pt}
 \title{
-	DATATHON 2026 --- The Gridbreakers \\
-	\large Phân tích Dữ liệu và Dự báo Doanh thu cho Thương mại Điện tử Thời trang
+    \textbf{DATATHON 2026 --- The Gridbreakers} \\
+    \large Từ Dữ liệu đến Chiến lược: Phân tích và Dự báo Doanh thu \\
+    \large Thương mại Điện tử Thời trang 2012--2024
 }
-
-% =========================================================
-% Authors
-% =========================================================
 \author{
-	Epsilon Delta \\
-	Trường Đại học Khoa học Tự nhiên - ĐHQG TP.HCM \\
-	Trường Đại học Công nghệ Thông tin - ĐHQG TP.HCM \\
-	\texttt{namnqs12@gmail.com}
+    Nguyen Ho Nam$^{1}$ \\
+    \texttt{namnqs12@gmail.com}
+    \And
+    Huynh Cung$^{1}$ \\
+    \texttt{cung.h28@gmail.com}
+    \And
+    Le Xuan Tri$^{1}$ \\
+    \texttt{emanhthangngot@gmail.com}
+    \And
+    Lu Le Huong Giang$^{2}$ \\
+    \texttt{lulehuonggiang@gmail.com}
+    \\
+    \\
+    $^{1}$Trường Đại học Khoa học Tự nhiên - ĐHQG TP.HCM
+    \\
+    $^{2}$Trường Đại học Công nghệ Thông tin - ĐHQG TP.HCM
 }
-
-% =========================================================
-% Document
-% =========================================================
 \begin{document}
-	
-	\maketitle
-	
-	% =========================================================
-	% Abstract
-	% =========================================================
-	\begin{abstract}
-		
-		Báo cáo trình bày giải pháp của nhóm cho bài toán phân tích dữ liệu và dự báo doanh thu trong DATATHON 2026 --- The Gridbreakers.		
-		Nhóm thực hiện exploratory data analysis (EDA), phân tích hành vi khách hàng, hiệu quả vận hành và xây dựng pipeline machine learning cho bài toán dự báo doanh thu chuỗi thời gian.		
-		Kết quả cho thấy các yếu tố như traffic website, mùa vụ, khuyến mãi và tồn kho có ảnh hưởng mạnh đến doanh thu. Mô hình ensemble kết hợp boosting và deep learning giúp cải thiện đáng kể độ chính xác dự báo.
 
-	\end{abstract}
+\maketitle
+\begin{abstract}
+	Báo cáo trình bày giải pháp phân tích và dự báo chuỗi thời gian cho doanh nghiệp Thương mại Điện tử giai đoạn 2012--2022. Khai thác hệ thống dữ liệu lớn, chúng tôi triển khai khung phân tích đa tầng để giải mã các quy luật khuyến mãi và vận hành. Hệ thống dự báo \textit{Revenue} và \textit{COGS} cho 548 ngày tiếp theo được xây dựng dựa trên kỹ thuật Recursive Forecasting và mô hình Ensemble (LGBM, XGB, CatBoost), tối ưu qua chiến lược Purged Walk-Forward Validation. Giải pháp đạt hiệu suất vượt trội trên các chỉ số MAE, RMSE, $R^2$, cung cấp các insight chiến lược giúp tối ưu hóa tồn kho và tăng trưởng doanh thu bền vững.
+\end{abstract}
+\section{Giới thiệu}
+
+Dự án tập trung vào phân tích và dự báo cho một doanh nghiệp Thương mại Điện tử thời trang (giai đoạn 07/2012--12/2022). Hệ thống dữ liệu bao gồm 13 bảng quan hệ với 646K giao dịch, 122K khách hàng, 2,412 SKU và 10 năm lịch sử vận hành (traffic, tồn kho, khuyến mãi chu kỳ 6-4-6-4). Mục tiêu trọng tâm gồm: (1) Phân tích chuyên sâu đề xuất chiến lược, và (2) Dự báo chính xác \textit{Revenue, COGS} cho 548 ngày tiếp theo (01/2023--07/2024).
+
+\section{Phân tích Chuyên sâu \& Chẩn đoán Kinh doanh}
+
+\subsection{The Great Divergence: Traffic tăng 67\%, Doanh thu giảm 46\%}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{../figures/fig_funnel_analysis.png}
+        \caption{Phễu Sessions--Orders--Revenue (2013=100).}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{../figures/fig_revenue_decomposition.png}
+        \caption{Phân rã doanh thu: AOV, Items/Order ổn định.}
+    \end{subfigure}
+    \caption{Vấn đề cốt lõi là volume (số đơn), không phải value (giá trị mỗi đơn).}
+    \label{fig:funnel}
+\end{figure}
+
+Doanh thu đạt đỉnh 2.1 tỷ VND (2016), lao dốc 46\% xuống đáy 1.14 tỷ (2019). Cùng giai đoạn, Sessions tăng 67\% (6.8M lên 11.1M). Conversion rate giảm từ khoảng 1.0\% (2016) xuống khoảng 0.4\% (2022): nếu giữ conversion 2016 trên traffic 2022, có thêm \textbf{194 đơn/ngày}. Chow test ($p<0.01$) xác nhận structural break tại 2019. Phân rã doanh thu (Hình~\ref{fig:funnel}b): AOV ổn định khoảng 200K VND/đơn, Items/Order khoảng 5.0, biên gộp 12--16\% suốt 10 năm. Số đơn hàng giảm 55\% --- \textbf{khủng hoảng volume, không phải value}. Traffic tăng chứng tỏ thương hiệu vẫn hấp dẫn; vấn đề nằm ở \textbf{checkout experience}. Chuyển ngân sách từ acquisition sang conversion optimization là quyết định chiến lược quan trọng nhất.
+
+\subsection{Nghịch lý Tồn kho, COD Tax \& Hành vi Khách hàng}
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}{0.48\textwidth}
+		\includegraphics[width=\textwidth]{../figures/fig_inventory_analysis.png}
+		\caption{\textbf{Inventory Paradox}: 50.6\% SKU lệch pha cung-cầu; Fill Rate ảo.}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}{0.48\textwidth}
+		\includegraphics[width=\textwidth]{../figures/fig_cohort_analysis.png}
+		\caption{\textbf{LTV by Channel}: Organic mang lại giá trị bền vững nhất.}
+	\end{subfigure}
+	\caption{(a) Quản trị tồn kho kém hiệu quả gây lãng phí vốn. (b) Nghịch lý Acquisition: Kênh mang lại nhiều Traffic nhất không phải là kênh sinh lời nhất.}
+	\label{fig:inv_cohort}
+\end{figure}
+
+\subsubsection*{Nghịch lý Tồn kho - KPI ảo}
+
+\textbf{50.6\% sản phẩm-tháng vừa hết hàng vừa tồn dư} --- lệch pha cung-cầu do chu kỳ tái đặt 30 ngày quá dài, gây hiệu ứng whipsaw. Fill Rate 96.1\% là \textbf{KPI ảo}: được cứu bởi sản phẩm bán chậm, trong khi top 50 SKU (41\% doanh thu) liên tục cháy hàng. Days of Supply TB 913 ngày, trung vị 240 ngày --- phân phối cực lệch phải. Cần rút ngắn chu kỳ tái đặt xuống 7--14 ngày cho top 200 SKU, thay Fill Rate bằng ``Lost Revenue on Top 50 SKU''.
+
+\subsubsection*{COD Tax - Khoản thuế ẩn 376 triệu VND}
+
+COD có tỷ lệ hủy gấp \textbf{3 lần} prepay, thiệt hại \textbf{376 triệu VND} toàn giai đoạn 10.5 năm. AOV của COD thấp hơn prepay đáng kể --- khách COD mua đơn nhỏ, dễ hủy. Mỗi 1\% COD chuyển sang prepay tiết kiệm $\approx$ 3.8M VND/năm. Target: chuyển 20\% COD volume sang prepay qua freeship + discount 2\% --- tiềm năng +200M VND/năm.
+
+\subsubsection*{Hành vi Khách hàng \& Mùa vụ Ngược}
+
+28\% khách quay lại trong 3 tháng --- thấp hơn mặt bằng TMĐT (30--40\%). \textbf{organic\_search} tạo LTV cao nhất, \textbf{email\_campaign} --- kênh lớn thứ hai --- LTV thấp nhất: email thu hút ``deal hunters''. \textbf{Đỉnh doanh thu tháng 4--6, đáy tháng 11--1} --- ngược bán lẻ Việt Nam, nhất quán 10 năm. \textbf{Thứ Tư > Thứ Bảy}: phân khúc 25--34 tuổi (29.8\%) mua sắm giờ nghỉ trưa trên điện thoại.
+\section{Hệ thống Dự báo}
+
+\subsection{Feature Engineering \& Recursive Forecasting}
+
+Hệ thống \textbf{374 đặc trưng} từ 15 bảng, tổ chức thành 14 họ. Bốn nhóm chính:
+
+\begin{itemize}
+\item \textbf{Calendar (43):} Fourier harmonics bậc 1--6; Tết Nguyên Đán xác định theo lịch âm ($\pm7$ ngày) thay cho khoảng cố định Jan 20--Feb 20 (sai đến 21 ngày).
+\item \textbf{Target AR (192):} 14 độ trễ (1--366d), rolling stats 7 cửa sổ, EWM 5 spans, momentum, acceleration, volatility.
+\item \textbf{Promotions (5):} Project 548 ngày test từ chu kỳ 6-4-6-4 lịch sử (dữ liệu gốc kết thúc 31/12/2022).
+\item \textbf{Vận hành \& Hành vi (134):} Orders, Web traffic, Cross-ratios, Category share, Returns, Payments, Inventory, Interaction. \textbf{Tất cả ngoại sinh lag $\ge 365$} chống leakage.
+\end{itemize}
+
+Dự báo \textbf{đệ quy từng ngày}: (1) dự đoán Revenue$_t$, COGS$_t$, (2) gán vào lịch sử, (3) \textbf{tái tính toàn bộ} đặc trưng dẫn xuất. Bỏ bước (3) khiến 88/374 đặc trưng lỗi thời và gây forecast drift. \textbf{Purged Walk-Forward CV} (3 folds, horizon 365d, purge gap 90d) ngăn rolling features rò rỉ train/test, mô phỏng điều kiện triển khai thực tế.
+
+\subsection{Ensemble \& Tối ưu hóa}
+
+Tám mô hình: LightGBM (primary), XGBoost, CatBoost, ExtraTrees, RandomForest, HistGradientBoosting (diversity), Ridge (linear stabilizer), Seasonal+Trend (day-of-year $\times$ decay $-3.80\%$/năm). \textbf{Stacking meta-learner} (Ridge, $\alpha=1.0$, positive weights) học trọng số OOF:
+
+\begin{equation}
+\hat{y}_t^{\text{stack}} = \sum_{m=1}^{M} w_m \cdot \hat{y}_t^{(m)}, \quad \mathbf{w}^* = \underset{\mathbf{w} \ge 0}{\arg\min} \sum_{t} \Bigl(y_t - \sum_{m} w_m \hat{y}_t^{(m)}\Bigr)^2 + \alpha\|\mathbf{w}\|_2^2
+\end{equation}
+
+Optuna (40 trials) tối ưu \textbf{hàm mục tiêu hỗn hợp} cân bằng 3 chỉ số cuộc thi:
+
+\begin{equation}
+\mathcal{L}_{\text{composite}} = 0.4\cdot\frac{\text{MAE}}{\text{MAE}_\text{base}} \;+\; 0.4\cdot\frac{\text{RMSE}}{\text{RMSE}_\text{base}} \;+\; 0.2\cdot(1-R^2)
+\end{equation}
+
+\textbf{Dự báo đệ quy} với cơ chế \textbf{bù trừ sai số} (Residual Correction):
+
+\begin{equation}
+\hat{y}_{t+1} = f_{\text{ens}}(\mathbf{x}_t) + \lambda \cdot \bar{e}_t, \qquad \bar{e}_t = \frac{1}{k}\sum_{i=1}^{k}(y_{t-i} - \hat{y}_{t-i}), \quad \lambda \in [0,1]
+\end{equation}
+
+Cơ chế \textbf{Purged Walk-Forward CV} (3 folds, horizon $H=365$d, purge gap $G=90$d): tại mỗi fold $f$, tập train $\mathcal{T}_f = [0,\,t_f]$, tập test $\mathcal{V}_f = [t_f+G,\,t_f+G+H]$. Purge gap loại bỏ $G$ ngày giữa train/test để ngăn các đặc trưng rolling (cửa sổ 90d) rò rỉ thông tin từ train sang validation. Mô phỏng chính xác điều kiện triển khai: tại ngày $t$, mô hình chỉ thấy dữ liệu đến $t-1$.
+
+Hậu xử lý: clipping $[\min_\text{hist},\,3\max_\text{hist}]$, exponential smoothing ($\alpha=0.25$).
+\section{Kết quả Dự báo}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{So sánh Baseline vs Ensemble --- Purged Walk-Forward CV (3 folds, $H$=365d, $G$=90d)}
+    \label{tab:results}
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        \textbf{Mô hình} & \textbf{MAE (VND)} & \textbf{RMSE (VND)} & \textbf{R$^2$} \\
+        \midrule
+        Mean Naive           & 1,964,758 & ---      & --- \\
+        Seasonal+Trend       & 1,069,797 & ---      & --- \\
+        Ridge                &   608,215 & ---      & --- \\
+        Decision Tree        &   502,887 & ---      & 0.9294$^*$ \\
+        \midrule
+        LGB (Single, CV)     & 582,133 & 792,943 & 0.7599 \\
+        \midrule
+        Weighted Blend (OOF) & 159,248 & 374,241 & 0.9489 \\
+        \textbf{Stacking Ridge (OOF)} & \textbf{151,045} & \textbf{361,907} & \textbf{0.9522} \\
+        \bottomrule
+    \end{tabular}
+
+    \vspace{3pt}
+    {\footnotesize $^*$In-sample. OOF = Out-of-Fold predictions. CV$_\text{MAE}$ của Stacking = 9.1\% --- ổn định cao qua 3 folds.}
+\end{table}
+
+Stacking cải thiện MAE \textbf{13.7\%}, RMSE \textbf{15.1\%} so với LGB đơn lẻ. Trọng số meta-learner: \textbf{Seasonal = 64.5\%} (neo xu hướng $-3.80\%$/năm), LGB = 16.2\%, CatBoost = 6.9\%, HGB = 8.3\%, RF = 4.1\% --- Seasonal+Trend đóng vai trò stabilizer chống drift. \textbf{SHAP:} Top-5 driver: \texttt{Revenue\_l1} (776K SHAP), \texttt{COGS\_l364} (202K), \texttt{COGS\_l1} (114K), \texttt{prod\_unique\_products\_l365} (112K), \texttt{Revenue\_l7} (99K). Các biến trễ (lags) dẫn đầu vì nắm bắt quán tính doanh thu; Promo và calendar Fourier nằm trong Top-25. \textbf{Phân rã Horizon:} 1--90d MAE=424,555; 91--180d MAE=684,899; 181--365d MAE=536,307 VND. Drift trend=$-8,367$ VND/30d --- không suy giảm theo thời gian. Dự báo 548 ngày (2023--2024): Revenue TB 4.47M VND/ngày, COGS TB 3.81M VND/ngày, margin $\approx$ 14.8\%.
+\section{Chiến lược Phục hồi \& Kết luận}
+
+Dữ liệu đã phẫu thuật chính xác ba "vết thương" gây chảy máu doanh thu: \textit{The Great Divergence} (đứt gãy phễu), \textit{Inventory Paradox} (lệch pha vận hành) và \textit{COD Tax} (chi phí ẩn). Nhóm đề xuất lộ trình phục hồi dựa trên ba đòn bẩy đã định lượng:
+
+\begin{itemize}[leftmargin=*, itemsep=2pt]
+	\item \textbf{Tối ưu Conversion Rate (CR) --- Dự kiến +300M VND/năm:} 
+	Nâng CR từ 0.42\% lên 0.65\% thông qua việc Audit UX và tối ưu hóa luồng thanh toán trên Mobile. Với 11.5M sessions hiện tại, chỉ cần hồi phục một phần hiệu suất cũ sẽ mang lại doanh thu đột phá mà không cần tăng chi phí Marketing.
 	
-	% =========================================================
-	% 1. Introduction
-	% =========================================================
-	\section{Giới thiệu}
+	\item \textbf{Cải cấu trúc Payment Mix --- Dự kiến +200M VND/năm:} 
+	Chuyển đổi 20\% giao dịch COD sang thanh toán trước (Prepaid) bằng cơ chế Freeship và Discount 2\%. Việc giảm tỷ lệ hủy đơn từ 9.2\% xuống 6\% giúp tiết kiệm trực tiếp 3.8M VND cho mỗi 1\% chuyển đổi thành công.
 	
-	Sự phát triển nhanh của thương mại điện tử đòi hỏi doanh nghiệp phải tối ưu vận hành dựa trên dữ liệu. Trong bài toán này, mục tiêu của nhóm gồm:
-	
-	\begin{itemize}
-		\item Khám phá insight kinh doanh từ dữ liệu
-		\item Phân tích hành vi khách hàng và hiệu quả vận hành
-		\item Dự báo doanh thu tương lai
-		\item Đề xuất chiến lược kinh doanh dựa trên dữ liệu
-	\end{itemize}
-	
-	Bộ dữ liệu bao gồm thông tin giao dịch, tồn kho, traffic website, khuyến mãi và đánh giá khách hàng trong giai đoạn 2012--2022.
-	
-	% =========================================================
-	% 2. Exploratory Data Analysis
-	% =========================================================
-	\section{Phân tích dữ liệu}
-	
-	% ---------------------------------------------------------
-	\subsection{Xu hướng doanh thu}
-	
-	\begin{figure}[H]
-		\centering
-		%\includegraphics[width=\linewidth]{figures/revenue_trend.png}
-		\caption{Xu hướng doanh thu theo thời gian}
-	\end{figure}
-	
-	Doanh thu tăng mạnh trong giai đoạn đầu, đạt đỉnh vào khoảng năm 2016 rồi bắt đầu ổn định. Các đỉnh doanh thu thường xuất hiện trong mùa khuyến mãi và cuối năm.
-	
-	\textbf{Insight:}
-	Nhu cầu có tính mùa vụ rõ rệt, cần tối ưu kế hoạch tồn kho và logistics vào các giai đoạn cao điểm.
-	
-	% ---------------------------------------------------------
-	\subsection{Traffic và doanh thu}
-	
-	\begin{figure}[H]
-		\centering
-		%\includegraphics[width=\linewidth]{figures/traffic_vs_revenue.png}
-		\caption{So sánh traffic website và doanh thu}
-	\end{figure}
-	
-	Traffic website tăng liên tục nhưng doanh thu không tăng tương ứng sau năm 2016.
-	
-	\textbf{Diagnostic Analysis:}
-	
-	\begin{itemize}
-		\item Conversion rate có xu hướng giảm
-		\item Traffic tăng nhưng chất lượng người dùng thấp hơn
-		\item Một số kênh marketing tạo nhiều traffic nhưng ít chuyển đổi
-	\end{itemize}
-	
-	\textbf{Khuyến nghị:}
-	
-	\begin{itemize}
-		\item Tối ưu conversion funnel
-		\item Tập trung vào traffic chất lượng cao
-		\item Cải thiện trải nghiệm người dùng
-	\end{itemize}
-	
-	% ---------------------------------------------------------
-	\subsection{Phân tích khách hàng}
-	
-	\begin{figure}[H]
-		\centering
-		%\includegraphics[width=\linewidth]{figures/customer_segment.png}
-		\caption{Tần suất mua hàng theo nhóm tuổi}
-	\end{figure}
-	
-	Nhóm khách hàng 25--34 tuổi có số lượng đơn hàng trung bình cao nhất.
-	
-	\textbf{Business Insight:}
-	
-	\begin{itemize}
-		\item Đây là nhóm khách hàng giá trị cao
-		\item Có khả năng phản hồi tốt với marketing cá nhân hoá
-	\end{itemize}
-	
-	\textbf{Prescriptive Recommendation:}
-	
-	\begin{itemize}
-		\item Tăng retention campaign cho nhóm 25--34
-		\item Triển khai loyalty program
-	\end{itemize}
-	
-	% ---------------------------------------------------------
-	\subsection{Phân tích hoàn trả sản phẩm}
-	
-	\begin{figure}[H]
-		\centering
-		%\includegraphics[width=\linewidth]{figures/return_reason.png}
-		\caption{Các nguyên nhân hoàn trả phổ biến}
-	\end{figure}
-	
-	Lý do hoàn trả phổ biến nhất là sai kích thước và lỗi sản phẩm.
-	
-	\textbf{Ý nghĩa kinh doanh:}
-	
-	\begin{itemize}
-		\item Tăng chi phí logistics ngược
-		\item Ảnh hưởng trải nghiệm khách hàng
-	\end{itemize}
-	
-	\textbf{Đề xuất:}
-	
-	\begin{itemize}
-		\item Cải thiện size recommendation
-		\item Tăng kiểm soát chất lượng sản phẩm
-	\end{itemize}
-	
-	% =========================================================
-	% 3. Forecasting Methodology
-	% =========================================================
-	\section{Dự báo doanh thu}
-	
-	% ---------------------------------------------------------
-	\subsection{Feature Engineering}
-	
-	Nhóm xây dựng các đặc trưng:
-	
-	\begin{itemize}
-		\item Đặc trưng thời gian:
-		day-of-week, month, quarter, holiday
-		
-		\item Lag features:
-		lag-1, lag-7, lag-30
-		
-		\item Rolling statistics:
-		rolling mean, rolling std
-		
-		\item Đặc trưng vận hành:
-		inventory, stockout, traffic
-	\end{itemize}
-	
-	% ---------------------------------------------------------
-	\subsection{Validation Strategy}
-	
-	Để tránh temporal leakage, nhóm sử dụng TimeSeriesSplit.
-	
-	\begin{figure}[H]
-		\centering
-		%\includegraphics[width=0.9\linewidth]{figures/timeseries_cv.png}
-		\caption{Time-series cross-validation}
-	\end{figure}
-	
-	% ---------------------------------------------------------
-	\subsection{Mô hình}
-	
-	Các mô hình được thử nghiệm:
-	
-	\begin{itemize}
-		\item LightGBM
-		\item XGBoost
-		\item CatBoost
-		\item LSTM
-		\item Ensemble Blending
-	\end{itemize}
-	
-	Mô hình cuối cùng là ensemble giữa boosting và deep learning.
-	
-	% ---------------------------------------------------------
-	\subsection{Feature Importance}
-	
-	\begin{figure}[H]
-		\centering
-		%\includegraphics[width=\linewidth]{figures/shap_summary.png}
-		\caption{SHAP feature importance}
-	\end{figure}
-	
-	Các yếu tố ảnh hưởng mạnh nhất:
-	
-	\begin{itemize}
-		\item Traffic website
-		\item Lag revenue
-		\item Seasonal features
-		\item Promotion indicators
-	\end{itemize}
-	
-	% =========================================================
-	% 4. Results
-	% =========================================================
-	\section{Kết quả}
-	
-	\begin{table}[H]
-		\centering
-		\caption{Kết quả mô hình}
-		\begin{tabular}{lccc}
-			\toprule
-			Model & MAE & RMSE & R$^2$ \\
-			\midrule
-			LightGBM & XXX & XXX & XXX \\
-			XGBoost & XXX & XXX & XXX \\
-			CatBoost & XXX & XXX & XXX \\
-			LSTM & XXX & XXX & XXX \\
-			Ensemble & \textbf{XXX} & \textbf{XXX} & \textbf{XXX} \\
-			\bottomrule
-		\end{tabular}
-	\end{table}
-	
-	Ensemble model cho kết quả tốt nhất trên validation set nhờ khả năng kết hợp giữa học quan hệ phi tuyến và đặc trưng chuỗi thời gian.
-	
-	% =========================================================
-	% 5. Conclusion
-	% =========================================================
-	\section{Kết luận}
-	
-	Báo cáo đã thực hiện phân tích dữ liệu đa chiều và xây dựng mô hình dự báo doanh thu cho doanh nghiệp thương mại điện tử thời trang.
-	
-	Các insight chính:
-	
-	\begin{itemize}
-		\item Doanh thu chịu ảnh hưởng mạnh bởi mùa vụ và traffic
-		\item Conversion efficiency giảm theo thời gian
-		\item Nhóm khách hàng 25--34 tuổi mang lại giá trị cao
-		\item Inventory và stockout có ảnh hưởng trực tiếp tới doanh thu
-	\end{itemize}
-	
-	Mô hình ensemble giúp cải thiện hiệu suất dự báo và hỗ trợ doanh nghiệp tối ưu vận hành trong tương lai.
-	
-	% =========================================================
-	% GitHub
-	% =========================================================
-	\section*{GitHub Repository}
-	
-	\url{https://github.com/nhnammldlnlpcvrs/gridbreaker-vinuni.git}
-	
-	% =========================================================
-	% References
-	% =========================================================
-	\section*{References}
-	
-	{\small
-		
-		[1] Ke, G. et al. LightGBM: A Highly Efficient Gradient Boosting Decision Tree. NeurIPS, 2017.
-		
-		[2] Chen, T. and Guestrin, C. XGBoost: A Scalable Tree Boosting System. KDD, 2016.
-		
-		[3] Lundberg, S. and Lee, S. A Unified Approach to Interpreting Model Predictions. NeurIPS, 2017.
-		
-	}
-	
+	\item \textbf{Rút ngắn Inventory Cycle --- Dự kiến +150M VND/năm:} 
+	Chuyển chu kỳ tái đặt hàng từ 30 ngày xuống 7--14 ngày cho Top 200 SKU chủ lực. Mục tiêu giảm số ngày cháy hàng (Stock-out) xuống dưới 0.5 ngày/tháng và thay thế KPI "Fill Rate" ảo bằng chỉ số thực tế: ``Lost Revenue on Top 50 SKU''.
+\end{itemize}
+
+\textbf{Kết luận:} Với hệ thống dự báo Ensemble 8 mô hình phối hợp cùng chiến lược \textit{Purged Walk-Forward CV}, doanh nghiệp đã có một "la bàn" đáng tin cậy để đo lường ROI cho từng can thiệp. Tổng giá trị phục hồi ước tính \textbf{500--700 triệu VND/năm} hoàn toàn đến từ việc tối ưu nội tại. Nếu không hành động, doanh thu sẽ tiếp tục suy giảm tự nhiên $-3.80\%$/năm. Dữ liệu không chỉ để dự báo, dữ liệu là để ra quyết định sống còn.
+
+\section*{Mã nguồn}
+
+Link: \url{https://github.com/nhnammldlnlpcvrs/gridbreaker-vinuni.git}
+
+\begin{thebibliography}{4}
+
+\bibitem{lightgbm}
+Ke, G. et al. \textit{LightGBM: A Highly Efficient Gradient Boosting Decision Tree.} NeurIPS, 2017.
+
+\bibitem{xgboost}
+Chen, T. and Guestrin, C. \textit{XGBoost: A Scalable Tree Boosting System.} KDD, 2016.
+
+\bibitem{shap}
+Lundberg, S. and Lee, S. \textit{A Unified Approach to Interpreting Model Predictions.} NeurIPS, 2017.
+
+\bibitem{catboost}
+Prokhorenkova, L. et al. \textit{CatBoost: Unbiased Boosting with Categorical Features.} NeurIPS, 2018.
+
+\end{thebibliography}
+
 \end{document}
