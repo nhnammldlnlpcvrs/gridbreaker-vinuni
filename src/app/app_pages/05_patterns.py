@@ -67,10 +67,10 @@ fig.add_trace(go.Bar(
     text=[f"{v/1e6:.1f}M" for v in monthly["avg_daily_rev"]],
     textposition="outside",
     textfont=dict(color=COLORS["text_hi"], size=10),
-    hovertemplate="<b>%{x}</b><br>Avg daily: %{y:.2f}M₫<extra></extra>",
+    hovertemplate="<b>%{x}</b><br>Avg daily: %{y:.2f}M VND<extra></extra>",
 ))
 apply_theme(fig, height=400, title="Average daily revenue by month — April–June peak (green), Nov–Jan trough (red)")
-fig.update_yaxes(title="Avg daily revenue (M₫)")
+fig.update_yaxes(title="Avg daily revenue (M VND)")
 fig.update_xaxes(title="")
 fig.add_annotation(
     x="Apr", y=monthly.loc[monthly.month == 4, "avg_daily_rev"].iloc[0] / 1e6,
@@ -127,7 +127,7 @@ fig2 = go.Figure(go.Heatmap(
     text=[[f"{v/1e6:.0f}M" for v in row] for row in ym_pivot.values],
     texttemplate="%{text}",
     textfont=dict(size=9, color=COLORS["text_hi"]),
-    colorbar=dict(title=dict(text="Revenue (₫)", side="right")),
+    colorbar=dict(title=dict(text="Revenue (VND)", side="right")),
 ))
 apply_theme(fig2, height=380, title="Monthly revenue by year — consistent Apr–Jun brightness across all years")
 fig2.update_xaxes(title="")
@@ -172,7 +172,7 @@ with left:
         textfont=dict(color=COLORS["text_hi"], size=10),
     ))
     apply_theme(fig3, height=380, title="Average daily revenue by day of week")
-    fig3.update_yaxes(title="Avg daily revenue (M₫)")
+    fig3.update_yaxes(title="Avg daily revenue (M VND)")
     fig3.update_xaxes(title="")
     wed_val = dow_stats.loc[dow_stats.dow_name == "Wednesday", "avg_rev"].iloc[0]
     sat_val = dow_stats.loc[dow_stats.dow_name == "Saturday", "avg_rev"].iloc[0]
