@@ -109,14 +109,12 @@ with right:
         }])
     ], ignore_index=True)
 
-    # Baseline line ("do nothing" scenario)
-    baseline_line = yearly["revenue"].tolist() + [baseline_rev * 1.00]
-
     fig = go.Figure()
-    # Baseline (flat)
+    # Baseline: 2023 flat projection only (do-nothing scenario from 2022 forward)
     fig.add_trace(go.Scatter(
-        x=sim_rows["year"], y=baseline_line,
-        name="Baseline (do nothing)",
+        x=[2022, 2023],
+        y=[last["revenue"] / 1e9, last["revenue"] / 1e9],
+        name="Baseline 2023 (no change)",
         mode="lines", line=dict(color=COLORS["text_dim"], width=2, dash="dot"),
     ))
     # Actual history
@@ -137,7 +135,7 @@ with right:
                     line=dict(color=COLORS["primary"], width=2)),
     ))
     apply_theme(fig, height=400, title="Revenue trajectory")
-    fig.update_yaxes(title="Revenue (B₫)")
+    fig.update_yaxes(title="Revenue (B VND)")
     fig.update_xaxes(dtick=1, title="")
     fig.add_annotation(
         x=2023, y=projected_rev / 1e9,
@@ -191,7 +189,7 @@ fig = go.Figure(go.Scatter(
         line=dict(color=COLORS["text_hi"], width=1.5),
         opacity=0.85,
         showscale=True,
-        colorbar=dict(title="Impact (B₫)", ticksuffix=" B"),
+        colorbar=dict(title="Impact (B VND)", ticksuffix=" B"),
     ),
     text=actions["action"],
     textposition="top center",
@@ -200,7 +198,7 @@ fig = go.Figure(go.Scatter(
 apply_theme(fig, height=440,
             title="Quick wins in the bottom-left · transformational in the top-right")
 fig.update_xaxes(title="Effort (1 = low, 5 = high)", range=[0.3, 4.7], dtick=1)
-fig.update_yaxes(title="Estimated revenue impact (B₫/yr)", range=[0, 1.8])
+fig.update_yaxes(title="Estimated revenue impact (B VND/yr)", range=[0, 1.8])
 fig.add_vline(x=2.5, line_dash="dot", line_color=COLORS["text_dim"])
 fig.add_hline(y=0.8, line_dash="dot", line_color=COLORS["text_dim"])
 st.plotly_chart(fig, use_container_width=True)

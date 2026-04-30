@@ -54,7 +54,7 @@ render_section_label("HERO · ANNOTATED TIMELINE")
 fig = make_subplots(specs=[[{"secondary_y": True}]])
 fig.add_trace(go.Scatter(
     x=yearly["year"], y=yearly["revenue"] / 1e9,
-    name="Revenue (B₫)", mode="lines+markers",
+    name="Revenue (B VND)", mode="lines+markers",
     line=dict(color=COLORS["primary"], width=3),
     marker=dict(size=9), fill="tozeroy",
     fillcolor="rgba(82,183,136,0.12)",
@@ -75,7 +75,7 @@ fig.add_vrect(
 )
 
 apply_theme(fig, height=440, title="Revenue ▼ -46% | Sessions ▲ +19% — 2016→2019")
-fig.update_yaxes(title_text="Revenue (B₫)", secondary_y=False)
+fig.update_yaxes(title_text="Revenue (B VND)", secondary_y=False)
 fig.update_yaxes(title_text="Sessions (M)", secondary_y=True)
 fig.update_xaxes(dtick=1, title="")
 
@@ -138,7 +138,7 @@ with left:
         connector=dict(line=dict(color=COLORS["text_dim"], dash="dot")),
     ))
     apply_theme(fig, height=400, title=f"Revenue change {peak_year}→{crash_year}")
-    fig.update_yaxes(title="B₫")
+    fig.update_yaxes(title="B VND")
     st.plotly_chart(fig, use_container_width=True)
 
 with right:
@@ -172,6 +172,16 @@ with right:
     fig.update_yaxes(title="")
     st.plotly_chart(fig, use_container_width=True)
 
+render_insight(
+    title="How to read this heatmap:",
+    level="info",
+    body=(
+        "Color intensity = each category's performance <em>relative to its own peak</em>, "
+        "not absolute revenue. A green cell at 100% for GenZ may represent far less "
+        "absolute revenue than a 60% cell for Streetwear. "
+        "Use the number labels inside each cell for absolute comparisons."
+    ),
+)
 
 st.markdown("<div style='margin: 20px 0'></div>", unsafe_allow_html=True)
 
