@@ -20,3 +20,4 @@ statsmodels>=0.14
 streamlit>=1.39
 kaleido>=0.2.1  # Plotly static image export for LaTeX report
 optuna>=3.0  # Hyperparameter optimization for LightGBM
+catboost>=1.2  # Gradient boosting library
