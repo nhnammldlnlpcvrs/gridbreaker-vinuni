@@ -47,6 +47,5 @@ submission*.csv
 *.fls
 *.fdb_latexmk
 CLAUDE.md
-.claude/
 docs/archive
 PLAN_TRAINING.md

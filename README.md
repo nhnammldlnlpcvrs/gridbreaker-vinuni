@@ -162,93 +162,306 @@ streamlit run src/app/main.py
 - **Charts:** Plotly dark theme with brand colorway, annotations on key data points
 - **Navigation:** 3-section sidebar (DASHBOARD / DIAGNOSIS / STRATEGY)
 
-### Dashboard Screenshots
+### Executive Dashboard & Business Overview
 
-#### DASHBOARD
+The dashboard homepage provides a high-level executive summary of the entire business trajectory from 2012 to 2022.  
+It is designed to immediately surface the core contradiction behind the company’s decline: revenue collapsed while customer demand indicators continued to rise.
 
-<details open>
-<summary><b>00 — Tổng quan (Overview)</b> — Revenue × Traffic dual-axis, KPI row, category mix</summary>
+The dashboard combines:
+- Financial KPIs
+- Traffic analytics
+- Customer metrics
+- Category composition
+- Operational anomalies
+- Behavioral patterns
 
-![Dashboard Overview 1](docs/streamlit/dashboard/dashboard_1.png)
-![Dashboard Overview 2](docs/streamlit/dashboard/dashboard_2.png)
+This creates a unified business intelligence layer for rapid diagnosis and strategic decision-making.
 
-</details>
+---
+
+#### The Great Divergence — Revenue vs Demand
+
+The main overview panel highlights the central finding of the project:
+
+> The business did not fail because demand disappeared.  
+> It failed because operational execution and conversion efficiency deteriorated.
+
+Key observations from the dashboard:
+- Revenue declined by approximately 44% from the 2016 peak.
+- Total orders dropped by 56%, indicating severe conversion deterioration.
+- Customer signups continued growing (+129%), proving that top-of-funnel demand remained healthy.
+- Gross margin stayed stable at 14%, suggesting pricing and profitability were not the primary issue.
+- Average order value remained relatively unchanged, reinforcing that customer willingness to spend did not collapse.
+
+The dual-axis chart (“Revenue vs Traffic — the contradiction”) visualizes the divergence between:
+- Rising website sessions
+- Falling revenue performance
+
+This divergence strongly suggests:
+- Conversion failure
+- Inventory inefficiency
+- Supply-chain friction
+- Funnel leakage
+
+The dashboard also surfaces a major operational anomaly:
+- 50.6% of product-months were simultaneously marked as both stockout and overstock.
+
+This “Inventory Paradox” indicates severe supply-chain synchronization problems:
+- Some products were unavailable during demand spikes
+- Other products accumulated excess inventory without selling
+
+Additional supporting analytics include:
+- Product category mix evolution over time
+- Payment-method cancellation patterns
+- Revenue behavior by day of week
+
+The insight cards at the bottom summarize the economic implications:
+- The conversion collapse likely cost the company approximately 4.6 billion VND in unrealized revenue between 2017–2022.
+- Website traffic increased by 19% while conversion rate fell from 0.98% to 0.42%.
+- Customers continued visiting the platform but increasingly failed to complete purchases.
+
+The dashboard therefore establishes the core narrative for the entire analysis:
+the company suffered from operational and conversion breakdowns rather than weak market demand.
+
+<img src="docs/streamlit/dashboard/dashboard_1.png" width="700">
+
+---
+
+#### Executive Diagnostic Summary & Navigation Layer
+
+The second overview dashboard acts as a decision-support and narrative orchestration layer.
+
+Instead of presenting isolated charts, the interface guides users through the investigation process:
+1. Identify the divergence between traffic and revenue
+2. Diagnose operational bottlenecks
+3. Analyze customer retention and conversion behavior
+4. Explore recovery strategies and intervention scenarios
+
+The alert panels classify findings into three levels:
+- Critical
+- Attention
+- Insight
+
+Critical findings quantify the macroeconomic impact of operational failure:
+- If conversion had remained at the 2016 level, the business could have generated an estimated +4.6B VND in additional revenue.
+
+Attention panels emphasize the contradiction:
+- Traffic continued growing while purchasing behavior weakened dramatically.
+
+Insight panels direct users toward the next analytical modules:
+- Revenue Collapse diagnostics
+- Funnel & Customer analysis
+- Recovery Simulator
+
+This structure transforms the dashboard into a guided analytical narrative rather than a static reporting interface.
+
+The system is therefore capable of supporting:
+- Executive reporting
+- Operational monitoring
+- Strategic planning
+- Prescriptive business analytics
+
+<img src="docs/streamlit/dashboard/dashboard_2.png" width="700">
+
 
 #### DIAGNOSIS
 
-<details>
 <summary><b>01 — Revenue Collapse</b> — Annotated timeline, waterfall decomposition, scenario slider</summary>
 
+Timeline analysis highlighting the 2016–2019 revenue collapse and major operational turning points.
+
 ![Revenue Collapse 1](docs/streamlit/diagnosis/revenue_1.png)
+
+Waterfall and scenario analysis explaining how conversion and supply-side failures impacted revenue.
+
 ![Revenue Collapse 2](docs/streamlit/diagnosis/revenue_2.png)
 
-</details>
 
-<details>
 <summary><b>02 — Funnel & Customer</b> — Session→Review funnel, cohort heatmap, channel LTV, returns</summary>
 
+Customer funnel visualization from traffic acquisition to purchase and review behavior.
+
 ![Funnel Customer 1](docs/streamlit/diagnosis/funel_customer_1.png)
+
+Cohort retention and customer lifetime value analysis across acquisition channels.
+
 ![Funnel Customer 2](docs/streamlit/diagnosis/funel_customer_2.png)
 
-</details>
 
-<details>
 <summary><b>03 — Inventory Paradox</b> — Stockout × overstock scatter, lost revenue, fill-rate violin</summary>
 
+Inventory imbalance analysis showing simultaneous stockout and overstock problems.
+
 ![Inventory 1](docs/streamlit/diagnosis/inventory_1.png)
+
+Lost-revenue estimation caused by low fill-rate and supply-chain inefficiency.
+
 ![Inventory 2](docs/streamlit/diagnosis/iventory_2.png)
+
+Distribution analysis of inventory performance and fulfillment consistency.
+
 ![Inventory 3](docs/streamlit/diagnosis/iventory_3.png)
 
-</details>
 
-<details>
 <summary><b>05 — Patterns & Timing</b> — Monthly seasonality, year×month heatmap, day-of-week analysis</summary>
 
+Seasonality analysis identifying recurring monthly and yearly purchasing patterns.
+
 ![Patterns 1](docs/streamlit/diagnosis/pattern_timing_1.png)
+
+Heatmap visualization of temporal demand fluctuations across years and months.
+
 ![Patterns 2](docs/streamlit/diagnosis/pattern_timing_2.png)
+
+Day-of-week behavioral analysis for operational and marketing optimization.
+
 ![Patterns 3](docs/streamlit/diagnosis/pattern_timing_3.png)
 
-</details>
 
-<details>
 <summary><b>06 — Promo ROI</b> — Calendar Gantt, discount distribution, revenue lift bars</summary>
 
+Promotion calendar and campaign scheduling analysis.
+
 ![Promo 1](docs/streamlit/diagnosis/promo_1.png)
+
+Revenue uplift and discount effectiveness evaluation for marketing campaigns.
+
 ![Promo 2](docs/streamlit/diagnosis/promo_2.png)
 
-</details>
 
-<details>
 <summary><b>07 — Geographic</b> — Top-20 cities, channel × city, AOV bubble chart</summary>
 
+Geographic revenue distribution across major cities and regions.
+
 ![Geo 1](docs/streamlit/diagnosis/geo_1.png)
+
+Cross-analysis between customer acquisition channels and geographic performance.
+
 ![Geo 2](docs/streamlit/diagnosis/geo_2.png)
+
+Average order value and market opportunity visualization by location.
+
 ![Geo 3](docs/streamlit/diagnosis/geo_3.png)
 
-</details>
 
-<details>
 <summary><b>08 — Cohort & Hypothesis</b> — Retention curves, statistical tests, churn analysis</summary>
 
+Customer retention curve analysis across different acquisition cohorts.
+
 ![Cohort 1](docs/streamlit/diagnosis/cohort_1.png)
+
+Behavioral segmentation and long-term engagement analysis.
+
 ![Cohort 2](docs/streamlit/diagnosis/cohort_2.png)
+
+Hypothesis testing for churn drivers and customer retention factors.
+
 ![Cohort 3](docs/streamlit/diagnosis/cohort_3.png)
+
+Statistical validation of operational and marketing assumptions.
+
 ![Cohort 4](docs/streamlit/diagnosis/cohort_4.png)
+
+Churn pattern visualization and repeat-purchase analysis.
+
 ![Cohort 5](docs/streamlit/diagnosis/cohort_5.png)
+
+Advanced cohort comparison for customer lifecycle evaluation.
+
 ![Cohort 6](docs/streamlit/diagnosis/cohort_6.png)
 
-</details>
 
-#### STRATEGY
+### Strategy & Recovery Planning
 
-<details>
-<summary><b>04 — Recovery Simulator</b> — Interactive sliders, live projection, effort × impact matrix</summary>
+The strategy module transforms diagnostic insights into actionable business recovery plans.  
+Instead of only explaining why revenue collapsed, the system allows decision-makers to simulate operational improvements, estimate financial uplift, prioritize initiatives, and build an implementation roadmap.
 
-![Strategy 1](docs/streamlit/strategy/strategy_1.png)
-![Strategy 2](docs/streamlit/strategy/strategy_2.png)
-![Strategy 3](docs/streamlit/strategy/strategy_3.png)
+---
 
-</details>
+#### Recovery Simulator — Interactive Scenario Planning
+
+This module enables users to simulate a 2023 recovery scenario by adjusting operational levers such as conversion rate, stockout reduction, cancellation reduction, AOV uplift, and traffic growth.
+
+The simulator compounds the effect of multiple interventions simultaneously, providing a realistic projection of how operational improvements translate into long-term revenue recovery.
+
+Key observations:
+- Conversion improvement has the strongest marginal effect on revenue recovery.
+- Inventory stabilization significantly reduces lost sales caused by stockouts.
+- Moderate AOV improvements create meaningful compounding gains when paired with higher conversion.
+- Traffic growth alone is insufficient without operational optimization.
+
+The live projection chart compares:
+- Historical business trajectory
+- Baseline “do nothing” scenario
+- User-defined recovery strategy
+
+The projected scenario demonstrates that coordinated operational improvements could generate:
+- +147% uplift versus the 2022 baseline
+- +37% growth relative to the 2016 historical peak
+
+This highlights that the business decline was operationally reversible rather than demand-driven.
+
+<img src="docs/streamlit/strategy/strategy_1.png" width="700">
+
+---
+
+#### Effort × Impact Priority Matrix
+
+The priority matrix evaluates strategic initiatives based on:
+- Estimated business impact
+- Operational implementation effort
+- Expected revenue contribution
+
+The visualization separates:
+- Quick wins (low effort, moderate impact)
+- Transformational initiatives (high effort, high impact)
+
+Key strategic insights:
+- Size-guide fixes and cohort win-back campaigns provide fast, low-cost recovery opportunities.
+- Dead-stock SKU reduction improves inventory efficiency while freeing working capital.
+- COD-to-prepay nudges generate one of the largest projected revenue uplifts with relatively manageable effort.
+- Reorder policy redesign and lead-time optimization require larger operational investment but create durable long-term gains.
+
+The matrix helps leadership prioritize initiatives under limited operational capacity and budget constraints.
+
+Bubble size and color encode projected financial impact, allowing rapid executive interpretation.
+
+<img src="docs/streamlit/strategy/strategy_2.png" width="700">
+
+---
+
+#### 2023 Recovery Roadmap & Gantt Planning
+
+The implementation roadmap converts strategic recommendations into a time-based execution schedule.
+
+The Gantt visualization organizes initiatives across the 2023 timeline and highlights:
+- Initiative sequencing
+- Cross-functional ownership
+- Expected implementation windows
+- Coordination dependencies
+
+Execution strategy:
+1. Launch quick wins early in Q1:
+   - Size-guide improvements
+   - Customer win-back campaigns
+   - Dead-stock liquidation
+
+2. Use short-term gains to finance larger operational transformation:
+   - Reorder policy redesign
+   - Lead-time optimization
+   - Paid-channel reallocation
+
+3. Transition toward scalable operational recovery by Q3.
+
+The executive insight panel summarizes the overall recovery thesis:
+- A balanced portfolio of short-term operational fixes and long-term structural improvements can reverse the post-2016 decline.
+- Operational optimization creates significantly higher impact than traffic acquisition alone.
+- The simulated strategy portfolio projects up to +147% revenue uplift versus the 2022 baseline.
+
+This module transforms the dashboard from a descriptive analytics tool into a prescriptive decision-support system.
+
+<img src="docs/streamlit/strategy/strategy_3.png" width="700">
+
 
 ---
 
