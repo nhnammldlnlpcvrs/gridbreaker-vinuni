@@ -48,7 +48,7 @@ np.random.seed(42)
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 ROOT      = Path("..").resolve()
-DATA_RAW  = ROOT / "dataset"
+DATA_RAW  = ROOT / "data" / "raw"
 REPORTS   = ROOT / "reports"
 REPORTS.mkdir(exist_ok=True)
 
