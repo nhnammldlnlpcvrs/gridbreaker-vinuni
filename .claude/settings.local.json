@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python build_viz_summary.py)",
+      "Bash(python -c \"import json; nb=json.load\\(open\\('notebooks/02_exploration/02_visualization_summary.ipynb','r',encoding='utf-8'\\)\\); print\\(f'Cells: {len\\(nb[\\\\\"cells\\\\\"]\\)}'\\); [print\\(f'  [{i}] {c[\\\\\"source\\\\\"][:80]}...'\\) for i,c in enumerate\\(nb['cells']\\)]\")",
+      "Bash(git commit -m ' *)",
+      "Bash(git reset *)",
+      "Bash(python -c \"import json; nb=json.load\\(open\\('notebooks/02_exploration/02_visualization_summary.ipynb','r',encoding='utf-8'\\)\\); [print\\(f'[{i:2d}] id={c.get\\(\\\\\"id\\\\\",\\\\\"-\\\\\"\\):16s} type={c[\\\\\"cell_type\\\\\"]}'\\) for i,c in enumerate\\(nb['cells']\\)]; print\\(f'Total: {len\\(nb[\\\\\"cells\\\\\"]\\)} cells'\\)\")",
+      "Bash(ls notebooks/03_modeling/ notebooks/06_output/)",
+      "Bash(ls submissions/)",
+      "Bash(python -c ' *)",
+      "Bash(pip install *)",
+      "Bash(python notebooks/06_output/part3_pipeline.py)",
+      "mcp__ide__executeCode",
+      "Bash(python -u notebooks/06_output/part3_pipeline.py)",
+      "Bash(jupytext --to notebook notebooks/06_output/part3_pipeline.py -o notebooks/06_output/part3_pipeline.ipynb)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('notebooks/06_output/part3_pipeline.py', doraise=True\\)\")",
+      "Bash(python part3_pipeline.py)",
+      "Bash(grep -v \"^$\" \"C:\\\\Users\\\\nghoo\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Giselle--Datathon-VinUni-gridbreaker-vinuni\\\\937a45d3-1aa4-4633-91ca-88d8d41ecbd2\\\\tasks\\\\bzkbcsxc7.output\")",
+      "Bash(tasklist)",
+      "Bash(jupytext --to notebook \"notebooks/02_exploration/02_visualization_summary.py\" -o \"notebooks/02_exploration/02_visualization_summary.ipynb\")",
+      "Bash(python -c \"import pandas as pd; df=pd.read_parquet\\('data/processed/abt_daily.parquet'\\); print\\(df.columns.tolist\\(\\)\\); print\\(df.shape\\)\")",
+      "Bash(python notebooks/06_output/generate_advanced_charts.py)",
+      "Bash(python3 *)",
+      "Bash(python -c \"import catboost; print\\('catboost', catboost.__version__\\)\")",
+      "Bash(python -c \"import lightgbm; print\\('lightgbm', lightgbm.__version__\\)\")",
+      "Bash(python -c \"import xgboost; print\\('xgboost', xgboost.__version__\\)\")",
+      "Bash(python -c \"import optuna; print\\('optuna', optuna.__version__\\)\")",
+      "Bash(python -c \"import shap; print\\('shap', shap.__version__\\)\")",
+      "Bash(python -c \"from src.modeling import *; print\\('All imports OK'\\); print\\('PurgedWalkForwardCV:', PurgedWalkForwardCV\\); print\\('composite_score:', composite_score\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('src/modeling.py', doraise=True\\); print\\('modeling.py OK'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('notebooks/06_output/part3_pipeline.py', doraise=True\\); print\\('pipeline.py OK'\\)\")",
+      "Bash(jupytext --to notebook \"notebooks/06_output/part3_pipeline.py\" -o \"notebooks/06_output/part3_pipeline.ipynb\")",
+      "Bash(jupytext --to notebook part3_pipeline.py -o part3_pipeline.ipynb)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('part3_pipeline.py', doraise=True\\); print\\('Syntax OK'\\)\")",
+      "Bash(grep -B2 -A5 \"Missing \\\\$ inserted\" report.log)",
+      "Bash(\"C:/Users/nghoo/AppData/Local/Programs/MiKTeX/miktex/bin/x64/pdflatex.exe\" -interaction=nonstopmode report.tex)",
+      "Bash(grep -v \"^--$\")",
+      "Bash(python -X utf8 -c ' *)"
+    ]
+  }
+}
