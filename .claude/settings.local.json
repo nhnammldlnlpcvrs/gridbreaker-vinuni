@@ -36,7 +36,10 @@
       "Bash(grep -B2 -A5 \"Missing \\\\$ inserted\" report.log)",
       "Bash(\"C:/Users/nghoo/AppData/Local/Programs/MiKTeX/miktex/bin/x64/pdflatex.exe\" -interaction=nonstopmode report.tex)",
       "Bash(grep -v \"^--$\")",
-      "Bash(python -X utf8 -c ' *)"
+      "Bash(python -X utf8 -c ' *)",
+      "Bash(python *)",
+      "Bash(pdflatex -interaction=nonstopmode report.tex)",
+      "Bash(PYTHONIOENCODING=utf-8 python)"
     ]
   }
 }
