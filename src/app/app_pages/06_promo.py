@@ -10,12 +10,13 @@ import streamlit as st
 from components.insight_box import render_insight, render_section_label
 from components.page_header import render_page_header
 from utils.chart_helpers import apply_theme
-from utils.data_loader import COLORS, fmt_vnd, fmt_pct, load_abt_daily
+from utils.data_loader import COLORS, fmt_vnd, fmt_pct, load_abt_daily, load_order_items
 
 DATASET = __import__("pathlib").Path(__file__).resolve().parents[3] / "data" / "raw"
 TRAIN_CUTOFF = pd.Timestamp("2022-12-31")
 
 abt = load_abt_daily()
+items = load_order_items()
 promos = pd.read_csv(DATASET / "Master" / "promotions.csv")
 promos["start_date"] = pd.to_datetime(promos["start_date"])
 promos["end_date"]   = pd.to_datetime(promos["end_date"])
@@ -67,13 +68,23 @@ with top_left:
     fig.update_yaxes(title="Number of promos")
     st.plotly_chart(fig, use_container_width=True)
 
+    # Compute fixed vs total discount share for the actionable insight
+    _fixed_promo_ids = set(promos.loc[promos["promo_type"] == "fixed", "promo_id"])
+    _fixed_orders = items[items["promo_id"].isin(_fixed_promo_ids)]
+    _fixed_discount_total = _fixed_orders["discount_amount"].sum()
+    _total_discount_all = items["discount_amount"].sum()
+    _fixed_share = _fixed_discount_total / max(_total_discount_all, 1) * 100
+
     st.markdown(
         f"""
         <div class="insight-box warning" style="margin-top:8px">
           <span class="insight-title" style="color:{COLORS['warning']}">DISCOUNT ANOMALY</span>
           Fixed discount = <strong>50 VND</strong> on items priced 1,000–100,000 VND.
           That's <strong>0.05%–5%</strong> effective discount — economically negligible.
-          Treat fixed promos as <em>marketing signals</em>, not price incentives.
+          Across all order items, fixed promos account for only
+          <strong>{_fixed_share:.1f}%</strong> of total discount value.
+          Recommendation: convert fixed-VND promos to percentage promos or eliminate them
+          to reduce catalogue complexity with <em>zero</em> revenue impact.
         </div>
         """,
         unsafe_allow_html=True,
@@ -83,10 +94,23 @@ with top_right:
     render_section_label("PROMO CALENDAR · GANTT UNIFORMITY")
 
     promos_sorted = promos.sort_values("start_date").reset_index(drop=True)
-    promos_sorted["label"] = promos_sorted["promo_name"].str[:22]
+    promos_sorted["label"] = promos_sorted["promo_name"].str[:28]
+
+    years_avail = sorted(promos_sorted["start_date"].dt.year.unique())
+    year_range = st.select_slider(
+        "Filter promo calendar by year range",
+        options=years_avail,
+        value=(years_avail[0], years_avail[-1]),
+        key="promo_year_range",
+    )
+    filtered_promos = promos_sorted[
+        (promos_sorted["start_date"].dt.year >= year_range[0]) &
+        (promos_sorted["start_date"].dt.year <= year_range[1])
+    ]
+    gantt_height = max(300, len(filtered_promos) * 24)
 
     fig2 = go.Figure()
-    for _, row in promos_sorted.iterrows():
+    for _, row in filtered_promos.iterrows():
         color = COLORS["primary"] if row["promo_type"] == "percentage" else COLORS["warning"]
         fig2.add_trace(go.Bar(
             x=[row["duration_days"]],
@@ -103,10 +127,10 @@ with top_right:
             ),
             showlegend=False,
         ))
-    apply_theme(fig2, height=700, title="All 50 promotions — green=%, yellow=fixed | 6-4-6-4 cadence visible")
-    fig2.update_layout(barmode="stack")
+    apply_theme(fig2, height=gantt_height, title="All promotions — green=%, yellow=fixed | 6-4-6-4 cadence visible")
+    fig2.update_layout(barmode="stack", margin=dict(l=220, r=30))
     fig2.update_xaxes(type="date", title="")
-    fig2.update_yaxes(autorange="reversed", title="", tickfont=dict(size=9))
+    fig2.update_yaxes(autorange="reversed", title="", tickfont=dict(size=11))
     st.plotly_chart(fig2, use_container_width=True)
 
 
@@ -161,12 +185,12 @@ with c1:
         y=lift_stats["avg_rev"] / 1e6,
         marker=dict(color=[color_map.get(l, COLORS["info"]) for l in lift_stats["label"]],
                     line=dict(width=0)),
-        text=[f"{v/1e6:.2f}M₫" for v in lift_stats["avg_rev"]],
+        text=[f"{v/1e6:.2f}M VND" for v in lift_stats["avg_rev"]],
         textposition="outside",
         textfont=dict(color=COLORS["text_hi"], size=11),
     ))
     apply_theme(fig3, height=340, title="Avg daily revenue by promo status")
-    fig3.update_yaxes(title="Avg daily rev (M₫)")
+    fig3.update_yaxes(title="Avg daily rev (M VND)")
     fig3.update_xaxes(title="")
     st.plotly_chart(fig3, use_container_width=True)
 

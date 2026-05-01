@@ -73,6 +73,24 @@ for cat in plot_df[cat_col].dropna().unique():
         text=sub.get("product_name", sub["product_id"].astype(str)),
     ))
 
+# Paradox points overlay — visually distinguish SKUs with both flags
+paradox_df = plot_df[plot_df["paradox"] == True]
+if len(paradox_df) > 0:
+    fig.add_trace(go.Scatter(
+        x=paradox_df["stock_on_hand"],
+        y=paradox_df["stockout_days"],
+        mode="markers",
+        name="PARADOX (both flags = 1)",
+        marker=dict(
+            size=8,
+            color=COLORS["danger"],
+            opacity=0.75,
+            symbol="x",
+            line=dict(width=1.5, color=COLORS["text_hi"]),
+        ),
+        hovertemplate="<b>PARADOX</b><br>Stock: %{x}<br>Stockout days: %{y}<extra></extra>",
+    ))
+
 apply_theme(fig, height=440,
             title="Stock on hand vs Stockout days — the paradox lives in the top-right")
 fig.update_xaxes(title="Stock on hand (end of month)")
@@ -84,15 +102,18 @@ med_days = plot_df["stockout_days"].median()
 fig.add_vline(x=med_stock, line_dash="dot", line_color=COLORS["text_dim"])
 fig.add_hline(y=med_days, line_dash="dot", line_color=COLORS["text_dim"])
 
-fig.add_annotation(
-    x=plot_df["stock_on_hand"].quantile(0.85),
-    y=plot_df["stockout_days"].quantile(0.85),
-    text="<b>PARADOX QUADRANT</b><br>both stockout + overstock",
-    showarrow=False,
-    bgcolor="rgba(242,95,92,0.12)",
-    bordercolor=COLORS["danger"], borderwidth=1, borderpad=6,
-    font=dict(color=COLORS["danger"], size=11, family="Inter"),
-)
+# Annotation anchored at the actual paradox centroid
+if len(paradox_df) > 0:
+    fig.add_annotation(
+        x=paradox_df["stock_on_hand"].median(),
+        y=paradox_df["stockout_days"].median(),
+        text="<b>PARADOX POINTS</b><br>stockout=1 AND overstock=1",
+        showarrow=True, arrowhead=2,
+        bgcolor="rgba(242,95,92,0.12)",
+        bordercolor=COLORS["danger"], borderwidth=1, borderpad=6,
+        font=dict(color=COLORS["danger"], size=11, family="Inter"),
+        ax=60, ay=-40,
+    )
 
 st.plotly_chart(fig, use_container_width=True)
 
@@ -152,7 +173,7 @@ with c2:
         textfont=dict(color=COLORS["text_hi"], size=10),
     ))
     apply_theme(fig, height=320, title="Revenue lost to stockouts (est.)")
-    fig.update_yaxes(title="B₫")
+    fig.update_yaxes(title="B VND")
     fig.update_xaxes(dtick=1, title="")
     st.plotly_chart(fig, use_container_width=True)
 

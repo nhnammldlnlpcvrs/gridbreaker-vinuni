@@ -74,7 +74,7 @@ CHANNEL_COLORS = {
 # ---------------------------------------------------------------------------
 PLOTLY_LAYOUT = dict(
     template="plotly_dark",
-    font=dict(family="Inter, system-ui, sans-serif", size=13, color=COLORS["text_hi"]),
+    font=dict(family="Plus Jakarta Sans, system-ui, sans-serif", size=13, color=COLORS["text_hi"]),
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
     colorway=[
@@ -83,7 +83,7 @@ PLOTLY_LAYOUT = dict(
     ],
     hoverlabel=dict(
         bgcolor=COLORS["bg_card"],
-        font=dict(family="Inter", size=13, color=COLORS["text_hi"]),
+        font=dict(family="Plus Jakarta Sans", size=13, color=COLORS["text_hi"]),
         bordercolor=COLORS["primary"],
     ),
     margin=dict(l=50, r=30, t=60, b=50),
@@ -163,7 +163,7 @@ def inject_global_css() -> None:
     """Inject dark cinematic CSS used across every page."""
     css = f"""
     <style>
-      /* ——— Google Fonts: Inter (body) + Outfit (display) + JetBrains Mono (numbers) ——— */
+      /* ——— Google Fonts: Plus Jakarta Sans (body) + Fraunces (display) ——— */
 
       /* ——— Design tokens ——— */
       :root {{
@@ -176,18 +176,19 @@ def inject_global_css() -> None:
 
       /* ——— Base typography ——— */
       html, body, [class*="css"] {{
-        font-family: 'Inter', system-ui, sans-serif;
+        font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
         font-size: 15px;
         line-height: 1.6;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }}
       h1, h2, h3, .page-title {{
-        font-family: 'Outfit', system-ui, sans-serif !important;
-        font-weight: 800 !important;
-        letter-spacing: -0.03em !important;
+        font-family: 'Fraunces', Georgia, serif !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.02em !important;
         line-height: 1.15 !important;
         color: {COLORS['text_hi']} !important;
+        font-style: italic !important;
       }}
       p, li, td, th {{
         line-height: 1.65;
@@ -198,7 +199,7 @@ def inject_global_css() -> None:
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', sans-serif;
         font-size: 10.5px;
         font-weight: 600;
         letter-spacing: 0.11em;
@@ -246,7 +247,7 @@ def inject_global_css() -> None:
         border-color: rgba(82,183,136,0.36);
       }}
       .kpi-label {{
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', sans-serif;
         font-size: 10.5px;
         font-weight: 600;
         letter-spacing: 0.10em;
@@ -255,7 +256,7 @@ def inject_global_css() -> None:
         margin-bottom: var(--space-2);
       }}
       .kpi-value {{
-        font-family: 'Outfit', sans-serif;
+        font-family: 'Fraunces', Georgia, serif;
         font-size: 28px;
         font-weight: 700;
         font-variant-numeric: tabular-nums;
@@ -264,7 +265,7 @@ def inject_global_css() -> None:
         line-height: 1.1;
       }}
       .kpi-delta {{
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', sans-serif;
         font-size: 12px;
         font-weight: 600;
         font-variant-numeric: tabular-nums;
@@ -281,7 +282,7 @@ def inject_global_css() -> None:
         border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
         padding: 14px 18px;
         margin: 14px 0;
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', sans-serif;
         font-size: 14px;
         line-height: 1.65;
         color: {COLORS['text_med']};
@@ -307,7 +308,7 @@ def inject_global_css() -> None:
       .insight-box.danger  .insight-icon {{ background: {COLORS['danger']}; }}
       .insight-box strong  {{ color: {COLORS['text_hi']}; font-weight: 600; }}
       .insight-title {{
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', sans-serif;
         font-size: 11px;
         font-weight: 700;
         letter-spacing: 0.09em;
@@ -324,13 +325,13 @@ def inject_global_css() -> None:
 
       /* ——— Sidebar nav typography ——— */
       [data-testid="stSidebarNav"] {{
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', sans-serif;
       }}
       [data-testid="stSidebarNav"] [data-testid="stPageLink-NavLink"] {{
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', sans-serif;
       }}
       [data-testid="stSidebarNav"] [data-testid="stPageLink-NavLink"] > span:not([data-testid="stIconMaterial"]) {{
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', sans-serif;
         font-size: 14px;
         font-weight: 500;
       }}
@@ -355,12 +356,12 @@ def inject_global_css() -> None:
 
       /* ——— Streamlit metric overrides ——— */
       [data-testid="stMetricValue"] {{
-        font-family: 'Outfit', sans-serif !important;
+        font-family: 'Fraunces', Georgia, serif !important;
         font-variant-numeric: tabular-nums;
         letter-spacing: -0.02em;
       }}
       [data-testid="stMetricDelta"] {{
-        font-family: 'Inter', sans-serif !important;
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
         font-variant-numeric: tabular-nums;
       }}
 
@@ -372,7 +373,7 @@ def inject_global_css() -> None:
 
       /* ——— Slider ——— */
       [data-testid="stSlider"] label {{
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', sans-serif;
         font-size: 13px;
         font-weight: 500;
       }}
@@ -383,7 +384,7 @@ def inject_global_css() -> None:
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet">
     """
     st.markdown(css, unsafe_allow_html=True)
@@ -397,12 +398,12 @@ def fmt_vnd(x: float, precision: int = 1) -> str:
     if pd.isna(x):
         return "—"
     if abs(x) >= 1e9:
-        return f"{x/1e9:.{precision}f} B₫"
+        return f"{x/1e9:.{precision}f} B VND"
     if abs(x) >= 1e6:
-        return f"{x/1e6:.{precision}f} M₫"
+        return f"{x/1e6:.{precision}f} M VND"
     if abs(x) >= 1e3:
-        return f"{x/1e3:.0f} K₫"
-    return f"{x:.0f}₫"
+        return f"{x/1e3:.0f} K VND"
+    return f"{x:.0f} VND"
 
 
 def fmt_num(x: float, precision: int = 0) -> str:

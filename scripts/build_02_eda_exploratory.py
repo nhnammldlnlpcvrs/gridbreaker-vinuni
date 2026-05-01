@@ -16,7 +16,7 @@ cells = []
 
 # ── CELL 0: Title ──────────────────────────────────────────────────────────────
 cells.append(new_markdown_cell("""\
-# 01 — EDA Exploratory
+# 02 — EDA Exploratory
 **Datathon 2026 | The Gridbreakers | Phase 4 (L1)**
 
 **Mục tiêu:** Tìm insight, verify context facts, test 7 hypotheses. Chart throw-away — không cần đẹp.
